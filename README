@@ -1,0 +1,11 @@
+Notre Dame Data Science Group's contributions to Spark and Graphx
+
+Notre Dame Information Network Analysis
+
+To get started:
+
+You'll need Eclipse, IvyDE (http://ant.apache.org/ivy/ivyde/history/latest-milestone/install.html), ScalaIDE (http://scala-ide.org/download/current.html)
+
+It's best to just get these from Eclipse Kepler Marketplace.
+
+Run Ant Build and start working.

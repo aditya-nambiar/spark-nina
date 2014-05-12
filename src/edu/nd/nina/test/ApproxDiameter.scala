@@ -2,6 +2,7 @@ package edu.nd.nina.test
 
 import org.apache.spark.SparkContext
 import org.apache.spark.graphx._
+import scala.collection.mutable.ArrayBuffer
 
 
 object ApproxDiameter {
@@ -18,25 +19,38 @@ object ApproxDiameter {
 
     val pagerankGraph: Graph[vdata, Int] = graph
       // Associate the degree with each vertex
-      .mapVertices( (id, attr) => vdata() )
+      .mapVertices( (id, _) => new vdata() )
+      
+    pagerankGraph.vertices.mapValues((x, vdata) => vdata.createbitmask(x))
+    
+    
+      
+      
     
 
   }
   
-  def vertexProgram(id: VertexId, attr: (Double, Double)): (Double, Double) = {
-      val (oldPR, lastDelta) = attr
-      val newPR = oldPR + (1.0 - resetProb) * msgSum
-      (newPR, newPR - oldPR)
-    }
-  
+ // def vertexProgram(id: VertexId, attr: (Double, Double)): (Double, Double) = {
+    //  val (oldPR, lastDelta) = attr
+      //val newPR = oldPR + (1.0 - resetProb) * msgSum
+     // (newPR, newPR - oldPR)
+  //  }
+
 }
 
 class vdata () {
-      val bitmask1: Vector[Vector[Boolean]] = Vector();
-      val bitmask2: Vector[Vector[Boolean]] = Vector();
+      val bitmask1: ArrayBuffer[ArrayBuffer[Boolean]] = ArrayBuffer();
+      val bitmask2: ArrayBuffer[ArrayBuffer[Boolean]] = ArrayBuffer();
  
-      def createbitmask(id: VertexId){
+      def createbitmask(vid: VertexId) {
         
+        val mask1 = ArrayBuffer.fill( (vid+2L).toInt ){ false }
+	    mask1(vid.toInt) = true
+	    
+	    bitmask1.push_back(mask1);
+	    std::vector<bool> mask2(id + 2, 0);
+	    mask2[id] = 1;
+	    bitmask2.push_back(mask2);
       }
 }
 

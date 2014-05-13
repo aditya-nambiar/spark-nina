@@ -4,6 +4,8 @@ import org.apache.spark.SparkContext
 import org.apache.spark.graphx._
 import scala.collection.mutable.ArrayBuffer
 import scala.util.control.Breaks._
+import scala.collection.mutable.ListBuffer
+import scala.util.Random
 
 object ApproxDiameter {
   def main(args: Array[String]) {
@@ -11,45 +13,43 @@ object ApproxDiameter {
       System.err.println("Usage: ApproxDiameter <master> <file>")
       System.exit(1)
     }
-    
+
     val sc = new SparkContext(args(0), "ApproxDiameter")
     var g = GraphLoader.edgeListFile(sc, args(1))
-    //doubleFringeDiameterEstimation(vertexFileName, edgesFileName)
+    doubleFringeDiameterEstimation(g.mapVertices((v, d) => d.toDouble))
   }
-  
-  private def doubleFringeDiameterEstimation(g: Graph[Int, Int]) = {
+
+  private def doubleFringeDiameterEstimation(g: Graph[Double, Int]) = {
     var lowerBound = Int.MinValue
     var upperBound = Int.MaxValue
     var iterationNo = 1
     val maxIterationNo = 3
     val maxVerticesToPickFromFringe = 5
     while (lowerBound < upperBound && iterationNo <= maxIterationNo) {
-  /*    
-      val r = g.pickRandomVertex()
-      println("picked r: " + r)
-      val (h, lengthOfTreeFromR) = BreadthFirstSearch.sssp(g, r)
-      g = h
-      println("lengthOfTreeFromR: " + r + " is " + lengthOfTreeFromR)
+
+      val (rvid, rvd) = pickRandomVertex[Double, Int](g)
+      println("picked r: " + rvid)
+      val (h, lengthOfTreeFromR) = BreadthFirstSearch.sssp(g, rvid)
+      println("lengthOfTreeFromR: " + rvid + " is " + lengthOfTreeFromR)
       // Pick a random vertex from the leaf
-      val a = g.pickRandomVertices(v => v.data == lengthOfTreeFromR, 1)(0)
-      println("picked a: " + a)
-      val (t, lengthOfTreeFromA) = runBfsFromVertexAndCountTheLengthOfTree(g, a)
-      g = t
+      val (avid, avd) = pickRandomVertices[Double, Int](h, vd => vd == lengthOfTreeFromR.toDouble, 1)(0)
+      println("picked a: " + avid)
+      val (t, lengthOfTreeFromA) = BreadthFirstSearch.sssp(g, avid)
       lowerBound = scala.math.max(lowerBound, lengthOfTreeFromA)
       val halfWay = lengthOfTreeFromA / 2
       println("lowerBound: " + lowerBound + " halfway: " + halfWay)
       // pick a vertex that's in the middle
-      val u = g.pickRandomVertices(v => v.data == halfWay, 1)(0)
-      println("picked u: " + u)
-      val (k, lengthOfTreeFromU) = runBfsFromVertexAndCountTheLengthOfTree(g, u)
-      g = k
+      val (uvid, uvd) = pickRandomVertices[Double, Int](t, vd => vd == halfWay.toDouble, 1)(0)
+      println("picked u: " + uvid)
+      val (k, lengthOfTreeFromU) = BreadthFirstSearch.sssp(t, uvid)
+
       println("lengthOfTreeFromC: " + lengthOfTreeFromU)
-      val fringeOfU = g.pickRandomVertices(v => v.data == lengthOfTreeFromU, maxVerticesToPickFromFringe)
+      val fringeOfU = pickRandomVertices[Double, Int](k, vd => vd == lengthOfTreeFromU, maxVerticesToPickFromFringe)
       println("fringeOfC: " + fringeOfU)
       var maxDistance = -1
       for (src <- fringeOfU) {
         println("src: " + src)
-        val (tmpG, lengthOfTreeFromSrc) = runBfsFromVertexAndCountTheLengthOfTree(g, src)
+        val (tmpG, lengthOfTreeFromSrc) = BreadthFirstSearch.sssp(k, src._1)
         if (lengthOfTreeFromSrc > maxDistance) {
           maxDistance = lengthOfTreeFromSrc
         }
@@ -67,7 +67,7 @@ object ApproxDiameter {
         } else if (maxDistance == (twiceEccentricityMinus1 + 1)) {
           upperBound = lengthOfTreeFromA
           println("found the EXACT diameter with multiple fringe nodes but maxDistance matching the " +
-          	"lengthOfTreeFromA. diameter: " + upperBound)
+            "lengthOfTreeFromA. diameter: " + upperBound)
           assert(lengthOfTreeFromA == (twiceEccentricityMinus1 + 1))
           assert(lowerBound == upperBound)
         } else {
@@ -85,12 +85,46 @@ object ApproxDiameter {
       upperBound = scala.math.min(upperBound, maxDistance)
       println("finished iterationNo: " + iterationNo + " lowerBound: " + lowerBound + " upperBound: " + upperBound)
       iterationNo += 1
-   
-   * 
-   */ }    
-   
+
+    }
+
     // POSTPROCESSING
     println("final lower bound:" + lowerBound + " final upperBound: " + upperBound)
-   
+
+  }
+
+  def pickRandomVertex[VD, VE](g: Graph[VD, VE]): (VertexId, VD) = {
+    pickRandomVertices[VD, VE](g, v => true, 1)(0)
+  }
+
+  def pickRandomVertices[VD, VE](g: Graph[VD, VE], p: VD => Boolean, numVerticesToPick: Int): Seq[(VertexId, VD)] = {
+    val numVerticesToPickFrom = g.vertices.filter {
+      case (id, d) => p(d)
+    }.count()
+    val actualNumVerticesToPick = scala.math.min(numVerticesToPickFrom, numVerticesToPick).intValue()
+    val probability = 50 * actualNumVerticesToPick / numVerticesToPickFrom
+    var found = false
+    var retVal: ListBuffer[(VertexId, VD)] = ListBuffer()
+    while (!found) {
+      val selectedVertices = g.vertices.flatMap { v =>
+        if (p(v._2) && Random.nextDouble() < probability) { Some(v) }
+        else { None }
+      }
+      var collectedSelectedVertices = ListBuffer[(VertexId, VD)]()
+      collectedSelectedVertices.appendAll(selectedVertices.collect())
+      println("collectedSelectedVertices: " + collectedSelectedVertices)
+      if (collectedSelectedVertices.size >= actualNumVerticesToPick) {
+        found = true
+        for (i <- 1 to actualNumVerticesToPick) {
+          val randomIndex = Random.nextInt(collectedSelectedVertices.size)
+          val toadd = collectedSelectedVertices(randomIndex)
+          retVal.append(toadd)
+          collectedSelectedVertices.remove(randomIndex)
+        }
+      } else {
+        println("COULD NOT PICK A VERTEX. TRYING AGAIN....")
+      }
+    }
+    retVal
   }
 }

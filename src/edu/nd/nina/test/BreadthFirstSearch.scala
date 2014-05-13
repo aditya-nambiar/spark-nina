@@ -15,7 +15,9 @@ object BreadthFirstSearch {
 
     val sc = new SparkContext(args(0), "ApproxDiameter")
     var g = GraphLoader.edgeListFile(sc, args(1)).mapVertices((v,d) => d.toDouble)
-    sssp(g, 1L)
+    val (h, max) = sssp(g, 1L)
+    println(h.vertices.collect.mkString("\n"))
+    println("Max: " + max)
   }
 
   def sssp(g: Graph[Double, Int], src: VertexId): (Graph[Double, Int], Int) = {
@@ -29,7 +31,9 @@ object BreadthFirstSearch {
       } else {
         Iterator.empty
       }
-    def messageCombiner(a: Double, b: Double): Double = math.min(a, b)
+    def messageCombiner(a: Double, b: Double): Double = {
+      math.min(a, b)
+    }
     // The initial message received by all vertices in PageRank
     val initialMessage = Double.PositiveInfinity
 
@@ -39,8 +43,13 @@ object BreadthFirstSearch {
       messageCombiner)
     
       
-    val summed = sssp.vertices.map((a) => a._2).reduce(math.max(_,_))
-        
-    (g,summed.toInt)
+    var summed = sssp.vertices.map((a) => a._2).reduce(math.max(_,_))
+    
+    if(summed.isInfinity){
+      println("Source Node is Sink")
+      summed = 0
+    }
+    
+    (sssp,summed.toInt)
   }
 }

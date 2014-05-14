@@ -17,6 +17,7 @@ object ApproxDiameter {
     val sc = new SparkContext(args(0), "ApproxDiameter")
     var g = GraphLoader.edgeListFile(sc, args(1))
     doubleFringeDiameterEstimation(g.mapVertices((v, d) => d.toDouble))
+    sc.stop
   }
 
   private def doubleFringeDiameterEstimation(g: Graph[Double, Int]) = {

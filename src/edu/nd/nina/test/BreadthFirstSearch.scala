@@ -18,6 +18,7 @@ object BreadthFirstSearch {
     val (h, max) = sssp(g, 1L)
     println(h.vertices.collect.mkString("\n"))
     println("Max: " + max)
+    sc.stop()
   }
 
   def sssp(g: Graph[Double, Int], src: VertexId): (Graph[Double, Int], Int) = {

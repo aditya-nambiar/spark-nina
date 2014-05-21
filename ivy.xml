@@ -6,5 +6,7 @@
 		</dependency>
 		<dependency org="org.apache.spark" name="spark-core_2.10" rev="0.9.1"/>
 		<dependency org="org.apache.spark" name="spark-graphx_2.10" rev="0.9.1"/>
+		<dependency org="org.apache.mahout" name="mahout-core" rev="0.9"/>
+		<dependency org="org.apache.mahout" name="mahout-integration" rev="0.9"/>            
 	</dependencies>
 </ivy-module>

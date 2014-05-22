@@ -5,6 +5,7 @@ import org.apache.spark.graphx._
 import scala.collection.mutable.ArrayBuffer
 import scala.util.control.Breaks._
 import scala.reflect.ClassTag
+import org.apache.spark.SparkConf
 
 object BreadthFirstSearch {
   def main(args: Array[String]) {
@@ -12,8 +13,13 @@ object BreadthFirstSearch {
       System.err.println("Usage: ApproxDiameter <master> <file>")
       System.exit(1)
     }
-
-    val sc = new SparkContext(args(0), "ApproxDiameter")
+    
+    
+    val conf = new SparkConf().setMaster("mesos://dsg1.crc.nd.edu:5050").
+    		setAppName("ApproxDiameter").
+    		set("spark.executor.uri", "hdfs://dsg2.crc.nd.edu:8020/var/lib/spark-0.9.1.tar.gz")
+    val sc = new SparkContext(conf)
+    
     var g = GraphLoader.edgeListFile(sc, args(1)).mapVertices((v,d) => d.toDouble)
     val (h, max) = sssp(g, 1L)
     println(h.vertices.collect.mkString("\n"))

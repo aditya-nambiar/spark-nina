@@ -1,10 +1,26 @@
 <ivysettings>
-    <settings defaultResolver="chain"/>
-    <resolvers>
-        <chain name="chain">
-            <ibiblio name="central" m2compatible="true"/>
-            <ibiblio name="public" m2compatible="true"/>
-            <ibiblio name="maven2" m2compatible="true"/>            
-        </chain>
-    </resolvers>
+	<settings defaultResolver="default" />
+	<resolvers>
+		<filesystem name="local" checkmodified="true">
+			<ivy
+				pattern="${basedir}/lib/[organisation]/[module]/[artifact](-[branch])-[revision].[ext]" />
+			<artifact
+				pattern="${basedir}/lib/[organisation]/[module]/[artifact](-[branch])-[revision].[ext]" />
+		</filesystem>
+		<ibiblio name="main" m2compatible="true" />
+		<ibiblio name="maven2" m2compatible="true"/>
+		<ibiblio name="public" m2compatible="true"/>
+		<ibiblio name="cloudera"
+			root="http://repository.cloudera.com/artifactory/repo" m2compatible="true" />
+		<chain name="default" returnFirst="true" checkmodified="true">
+			<resolver ref="local" />
+			<resolver ref="main" />
+			<resolver ref="cloudera" />
+			<resolver ref="maven2" />
+			<resolver ref="public" />
+		</chain>
+
+	</resolvers>
+
+
 </ivysettings>

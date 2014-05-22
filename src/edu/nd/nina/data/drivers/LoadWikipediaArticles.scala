@@ -7,9 +7,9 @@ import org.apache.spark.graphx.Graph
 import org.apache.spark.rdd.RDD
 import org.apache.spark.graphx._
 import org.apache.hadoop.conf.Configuration
-import org.apache.mahout.text.wikipedia.XmlInputFormat
 import org.apache.hadoop.io.LongWritable
 import org.apache.hadoop.io.Text
+import org.apache.spark.storage.StorageLevel
 
 object LoadWikipediaArticles extends Logging {
 
@@ -24,8 +24,13 @@ object LoadWikipediaArticles extends Logging {
       .set("spark.kryo.registrator", "org.apache.spark.graphx.GraphKryoRegistrator")
 
     val sc = new SparkContext(args(0), "LoadWikipediaArticles", sparkconf)
-
-    loadWikipedia(sc, args(1), 4)
+    
+    val g = loadWikipedia(sc, args(1), 4)
+    
+    g.vertices.saveAsTextFile("hdfs://dsg2.crc.nd.edu/data/enwiki/vertices")
+    g.edges.saveAsTextFile("hdfs://dsg2.crc.nd.edu/data/enwiki/edges")
+    
+    sc.stop
 
   }
 

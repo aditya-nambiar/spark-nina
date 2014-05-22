@@ -14,6 +14,7 @@ import org.apache.spark.graphx._
 class WikiArticle(wtext: String) extends Serializable {
   val links: Array[String] = WikiArticle.parseLinks(wtext)
   val neighbors = links.map(WikiArticle.titleHash).distinct
+  val namespace = WikiArticle.namespacePattern.findFirstIn(wtext).getOrElse("")  
   val redirect: Boolean = !WikiArticle.redirectPattern.findFirstIn(wtext).isEmpty
   val stub: Boolean = !WikiArticle.stubPattern.findFirstIn(wtext).isEmpty
   val disambig: Boolean = !WikiArticle.disambigPattern.findFirstIn(wtext).isEmpty
@@ -25,6 +26,12 @@ class WikiArticle(wtext: String) extends Serializable {
       case e => WikiArticle.notFoundString // don't use null because we get null pointer exceptions
     }
   }
+  val newTitle = namespace match {
+    case "0" => title
+    case "14" => "Category:"+title
+    case _ => null
+  }
+  
   val relevant: Boolean = !(redirect || stub || disambig || title == WikiArticle.notFoundString || title == null)
   val vertexID: VertexId = WikiArticle.titleHash(title)
   val edges: HashSet[Edge[Double]] = {
@@ -41,6 +48,7 @@ class WikiArticle(wtext: String) extends Serializable {
 
 object WikiArticle {
   val titlePattern = "<title>(.*)<\\/title>".r
+  val namespacePattern = "<ns>(.*)<\\/ns>".r
   val redirectPattern = "#REDIRECT\\s+\\[\\[(.*?)\\]\\]".r
   val disambigPattern = "\\{\\{disambig\\}\\}".r
   val stubPattern = "\\-stub\\}\\}".r
@@ -55,7 +63,7 @@ object WikiArticle {
       val temp: Array[String] = matcher.group(1).split("\\|")
       if (temp != null && temp.length > 0) {
         val link: String = temp(0)
-        if (!link.contains(":")) {
+        if (!link.contains(":") || link.startsWith("Category:") ) {
           linkBuilder += link
         }
       }

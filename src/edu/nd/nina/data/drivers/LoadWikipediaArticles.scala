@@ -27,8 +27,8 @@ object LoadWikipediaArticles extends Logging {
     
     val g = loadWikipedia(sc, args(1), 4)
     
-    g.vertices.saveAsTextFile("hdfs://dsg2.crc.nd.edu/data/enwiki/vertices")
-    g.edges.saveAsTextFile("hdfs://dsg2.crc.nd.edu/data/enwiki/edges")
+    g.vertices.saveAsTextFile("hdfs://dsg2.crc.nd.edu/data/enwiki/aditya_vertices")
+    g.edges.saveAsTextFile("hdfs://dsg2.crc.nd.edu/data/enwiki/aditya_edges")
     
     sc.stop
 

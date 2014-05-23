@@ -6,5 +6,6 @@
 		</dependency>
 		<dependency org="org.apache.spark" name="spark-core_2.10" rev="0.9.1-hadoop2.0.0-cdh4.6.0"/>
 		<dependency org="org.apache.spark" name="spark-graphx_2.10" rev="0.9.1-hadoop2.0.0-cdh4.6.0"/>
+		
 	</dependencies>
 </ivy-module>

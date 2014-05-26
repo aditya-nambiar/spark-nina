@@ -14,8 +14,10 @@ import org.apache.log4j.Logger
 import org.apache.log4j.PropertyConfigurator
 import edu.nd.nina.test.ApproxDiameter
 
-object LoadWikipediaArticles extends Logging {
 
+object LoadWikipediaArticles extends Logging {
+  var global:Graph[String,Double] = _
+  
   def main(args: Array[String]) {
     if (args.length < 2) {
       System.err.println("Usage: LoadWikipediaArticles <master> <file>")
@@ -62,8 +64,9 @@ object LoadWikipediaArticles extends Logging {
    // for(x <- tp4){println(x.srcId+ " -> "+ x.dstId+ " Weight " + x.attr)  }
   //   val (rvid, rvd) = ApproxDiameter.pickRandomVertex[String,Double](cleanG)
      val rvid= cleanG.vertices.first._1
+    
     val (tp1,tp2)=sssp(cleanG,rvid)
-    println("Hulala "+ tp2)
+
     cleanG
   }
   
@@ -95,6 +98,7 @@ object LoadWikipediaArticles extends Logging {
     val initGraph = g.mapVertices((id, x) => if (id == src) {"0:"+x.takeRight(1)} else {Double.PositiveInfinity.toString+":"+x.takeRight(1)})
     val a=g
     val b=6
+    global = g
     def vertexProgram(src: VertexId, dist: String, newDist: Double): String =
       {
        val a=dist.dropRight(2).toDouble
@@ -107,14 +111,15 @@ object LoadWikipediaArticles extends Logging {
     println("----------------------------------------")
     println(a.vertices.count)
     def sendMessage(edge: EdgeTriplet[String, Double]) =
-    {  var x=0
-       println("----------------------------------------")
-       println(b) // both b and a are created out" b" is printed "a " gives null pointer exception
-       println(a.vertices.count)
+    { 
+     //  println("----------------------------------------")
+       //println(b) // both b and a are created out" b" is printed "a " gives null pointer exception
+      // println(global.vertices.count)
+      if(edge.srcAttr.takeRight(2)==":0" && edge.dstAttr.takeRight(2) ==":0"){
            val src_in=edge.srcId
            val dst_in = edge.dstId
-
-           val initGraph_in = g.mapVertices((id_in, y) => if (id_in == src_in) {"0:"+y.takeRight(1)} else {Double.PositiveInfinity.toString+":"+y.takeRight(1)})
+          
+           val initGraph_in = global.mapVertices((id, y) => if (id == src_in) {"0:"+y.takeRight(1)} else {Double.PositiveInfinity.toString+":"+y.takeRight(1)})
           
           
            def vertexProgram_in(src: VertexId, dist: String, newDist: Double): String ={
@@ -125,11 +130,11 @@ object LoadWikipediaArticles extends Logging {
               r
    
            }
-    
+     
             def sendMessage_in(edge_in: EdgeTriplet[String, Double]) ={
       
                 if (edge_in.srcAttr.dropRight(2).toDouble + edge_in.attr < edge_in.dstAttr.dropRight(2).toDouble && 
-                    ((edge_in.srcAttr.takeRight(2)==":4" && edge_in.dstAttr.takeRight(2) ==":4")|| (edge_in.srcAttr.takeRight(2)==":0" && edge_in.dstAttr.takeRight(2)==":4") || (edge_in.dstId==dst_in && edge_in.srcAttr.takeRight(2)==":4" ) )) 
+                    ((edge_in.srcAttr.takeRight(2)==":4" && edge_in.dstAttr.takeRight(2) ==":4")|| (edge_in.srcId==src_in && edge_in.dstAttr.takeRight(2)==":4") || (edge_in.dstId==dst_in && edge_in.srcAttr.takeRight(2)==":4" ) )) 
                     {
          
                  Iterator((edge_in.dstId, edge_in.srcAttr.dropRight(2).toDouble + edge_in.attr))
@@ -153,18 +158,24 @@ object LoadWikipediaArticles extends Logging {
              sendMessage_in,
              messageCombiner_in)
              //Better method to find attr given id??
-             x=sssp_in.vertices.filter{ case (id,vd) => (id == dst_in)}.first._2.dropRight(2).toInt
-             println("Not bad - " +x )
-             
-             x=5
+             var x=4.0
+            val  x1=sssp_in.vertices.collect
+            for((x2,y2)<-x1){
+              if(x2==dst_in)
+               x=y2.dropRight(2).toDouble
+            }
+            println(src_in + " " +dst_in+ " " +x)
+         
              
       
       
-      if (edge.srcAttr.dropRight(2).toDouble + x < edge.dstAttr.dropRight(2).toDouble && edge.srcAttr.takeRight(2)==edge.dstAttr.takeRight(2)) {
+        if (edge.srcAttr.dropRight(2).toDouble + x < edge.dstAttr.dropRight(2).toDouble ) {
          
           Iterator((edge.dstId, edge.srcAttr.dropRight(2).toDouble +x))
          
-      } else {
+       } 
+        else{Iterator.empty}
+      }else {
         Iterator.empty
       }
     

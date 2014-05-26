@@ -12,6 +12,7 @@ import org.apache.hadoop.io.Text
 import org.apache.spark.storage.StorageLevel
 import org.apache.log4j.Logger
 import org.apache.log4j.PropertyConfigurator
+import edu.nd.nina.test.ApproxDiameter
 
 object LoadWikipediaArticles extends Logging {
 
@@ -55,10 +56,17 @@ object LoadWikipediaArticles extends Logging {
     logWarning(s"ORIGINAL graph has ${cleanG.triplets.count()} EDGES, ${cleanG.vertices.count()} VERTICES")
     logWarning(s"CLEAN graph has ${cleanG.triplets.count()} EDGES, ${cleanG.vertices.count()} VERTICES")
     println("CLean Graph")
-    
+   // val rt= cleanG.vertices.collect
+   // for( (x,y) <- rt ){println(y.takeRight(2))}
+  //  val tp4=cleanG.edges.collect
+   // for(x <- tp4){println(x.srcId+ " -> "+ x.dstId+ " Weight " + x.attr)  }
+     val (rvid, rvd) = ApproxDiameter.pickRandomVertex[String,Double](cleanG)
+     
+    val (tp1,tp2)=sssp(cleanG,rvid)
+    println("Hulala "+ tp2)
     cleanG
   }
-
+  
   def extractLinkGraph(sc: SparkContext, rawData: String, numParts: Int): (RDD[(VertexId, String)], RDD[Edge[Double]]) = {
     val conf = new Configuration
     conf.set("key.value.separator.in.input.line", " ")
@@ -81,5 +89,55 @@ object LoadWikipediaArticles extends Logging {
    
     (vertices, edges)
   }
+  
+  def sssp(g: Graph[String,Double], src: VertexId): (Graph[String, Double], Double) = {
+
+    val initGraph = g.mapVertices((id, x) => if (id == src) {"0:"+x.takeRight(1)} else {Double.PositiveInfinity.toString+":"+x.takeRight(1)})
+    val tp= initGraph.vertices.collect
+    for ( (x,y) <- tp){println(x+ " "+y)}
+    def vertexProgram(src: VertexId, dist: String, newDist: Double): String =
+      {//println(dist)
+       val a=dist.dropRight(2).toDouble
+      // println(dist)
+       val b=newDist
+       val c= math.min(a,b)
+     //  println(a+ " " +b)
+       val r= c.toString+dist.takeRight(2)
+       r
+   
+      }
+    def sendMessage(edge: EdgeTriplet[String, Double]) =
+      
+      if (edge.srcAttr.dropRight(2).toDouble + edge.attr < edge.dstAttr.dropRight(2).toDouble && edge.srcAttr.takeRight(2)==edge.dstAttr.takeRight(2)) {
+         
+          Iterator((edge.dstId, edge.srcAttr.dropRight(2).toDouble + edge.attr))
+         
+      } else {
+        Iterator.empty
+      }
+       def messageCombiner(a:Double, b: Double): Double = {
+           math.min(a,b)
+    }
+   
+    
+    // The initial message received by all vertices in PageRank
+    val initialMessage = Double.PositiveInfinity
+
+
+    val sssp = initGraph.pregel(initialMessage)(
+      vertexProgram,
+      sendMessage,
+      messageCombiner)
+    
+    println("----------------------------------------------")
+    val tp1= sssp.vertices.collect
+    for ( (x,y) <- tp1){println(x+ " "+y)}
+   var summed = sssp.vertices.map((a) => a._2.dropRight(2).toDouble).reduce(math.max(_,_))
+    
+   
+    
+    (sssp,summed)
+  }
+
 
 }

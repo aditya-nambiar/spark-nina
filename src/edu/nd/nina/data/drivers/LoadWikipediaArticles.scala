@@ -60,8 +60,8 @@ object LoadWikipediaArticles extends Logging {
    // for( (x,y) <- rt ){println(y.takeRight(2))}
   //  val tp4=cleanG.edges.collect
    // for(x <- tp4){println(x.srcId+ " -> "+ x.dstId+ " Weight " + x.attr)  }
-     val (rvid, rvd) = ApproxDiameter.pickRandomVertex[String,Double](cleanG)
-     
+  //   val (rvid, rvd) = ApproxDiameter.pickRandomVertex[String,Double](cleanG)
+     val rvid= cleanG.vertices.first._1
     val (tp1,tp2)=sssp(cleanG,rvid)
     println("Hulala "+ tp2)
     cleanG
@@ -93,31 +93,85 @@ object LoadWikipediaArticles extends Logging {
   def sssp(g: Graph[String,Double], src: VertexId): (Graph[String, Double], Double) = {
 
     val initGraph = g.mapVertices((id, x) => if (id == src) {"0:"+x.takeRight(1)} else {Double.PositiveInfinity.toString+":"+x.takeRight(1)})
-    val tp= initGraph.vertices.collect
-    for ( (x,y) <- tp){println(x+ " "+y)}
+    val a=g
+    val b=6
     def vertexProgram(src: VertexId, dist: String, newDist: Double): String =
-      {//println(dist)
+      {
        val a=dist.dropRight(2).toDouble
-      // println(dist)
        val b=newDist
        val c= math.min(a,b)
-     //  println(a+ " " +b)
        val r= c.toString+dist.takeRight(2)
        r
    
       }
+    println("----------------------------------------")
+    println(a.vertices.count)
     def sendMessage(edge: EdgeTriplet[String, Double]) =
+    {  var x=0
+       println("----------------------------------------")
+       println(b) // both b and a are created out" b" is printed "a " gives null pointer exception
+       println(a.vertices.count)
+           val src_in=edge.srcId
+           val dst_in = edge.dstId
+
+           val initGraph_in = g.mapVertices((id_in, y) => if (id_in == src_in) {"0:"+y.takeRight(1)} else {Double.PositiveInfinity.toString+":"+y.takeRight(1)})
+          
+          
+           def vertexProgram_in(src: VertexId, dist: String, newDist: Double): String ={
+              val a=dist.dropRight(2).toDouble
+              val b=newDist
+              val c= math.min(a,b)
+              val r= c.toString+dist.takeRight(2)
+              r
+   
+           }
+    
+            def sendMessage_in(edge_in: EdgeTriplet[String, Double]) ={
       
-      if (edge.srcAttr.dropRight(2).toDouble + edge.attr < edge.dstAttr.dropRight(2).toDouble && edge.srcAttr.takeRight(2)==edge.dstAttr.takeRight(2)) {
+                if (edge_in.srcAttr.dropRight(2).toDouble + edge_in.attr < edge_in.dstAttr.dropRight(2).toDouble && 
+                    ((edge_in.srcAttr.takeRight(2)==":4" && edge_in.dstAttr.takeRight(2) ==":4")|| (edge_in.srcAttr.takeRight(2)==":0" && edge_in.dstAttr.takeRight(2)==":4") || (edge_in.dstId==dst_in && edge_in.srcAttr.takeRight(2)==":4" ) )) 
+                    {
          
-          Iterator((edge.dstId, edge.srcAttr.dropRight(2).toDouble + edge.attr))
+                 Iterator((edge_in.dstId, edge_in.srcAttr.dropRight(2).toDouble + edge_in.attr))
+         
+                 } else {
+                 Iterator.empty
+                 }
+    
+           }
+            def messageCombiner_in(a:Double, b: Double): Double = {
+            math.min(a,b)
+           }
+   
+  
+    // The initial message received by all vertices in PageRank
+            val initialMessage_in = Double.PositiveInfinity
+ 
+
+            val sssp_in = initGraph_in.pregel(initialMessage_in)(
+             vertexProgram_in,
+             sendMessage_in,
+             messageCombiner_in)
+             //Better method to find attr given id??
+             x=sssp_in.vertices.filter{ case (id,vd) => (id == dst_in)}.first._2.dropRight(2).toInt
+             println("Not bad - " +x )
+             
+             x=5
+             
+      
+      
+      if (edge.srcAttr.dropRight(2).toDouble + x < edge.dstAttr.dropRight(2).toDouble && edge.srcAttr.takeRight(2)==edge.dstAttr.takeRight(2)) {
+         
+          Iterator((edge.dstId, edge.srcAttr.dropRight(2).toDouble +x))
          
       } else {
         Iterator.empty
       }
+    
+    }
        def messageCombiner(a:Double, b: Double): Double = {
            math.min(a,b)
-    }
+      }
    
     
     // The initial message received by all vertices in PageRank

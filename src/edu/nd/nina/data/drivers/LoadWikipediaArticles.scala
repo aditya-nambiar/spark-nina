@@ -64,10 +64,11 @@ object LoadWikipediaArticles extends Logging {
    // for(x <- tp4){println(x.srcId+ " -> "+ x.dstId+ " Weight " + x.attr)  }
   //   val (rvid, rvd) = ApproxDiameter.pickRandomVertex[String,Double](cleanG)
      val rvid= cleanG.vertices.first._1
+    val temp = cleanG.mapTriplets(x => if(x.srcAttr.takeRight(1)=="0" && x.dstAttr.takeRight(1)=="0") -1.0 else 1.0)
     
-    val (tp1,tp2)=sssp(cleanG,rvid)
+    val (tp1,tp2)=sssp(temp,rvid)
 
-    cleanG
+    temp
   }
   
   def extractLinkGraph(sc: SparkContext, rawData: String, numParts: Int): (RDD[(VertexId, String)], RDD[Edge[Double]]) = {
@@ -108,14 +109,13 @@ object LoadWikipediaArticles extends Logging {
        r
    
       }
-    println("----------------------------------------")
-    println(a.vertices.count)
+   
     def sendMessage(edge: EdgeTriplet[String, Double]) =
     { 
-     //  println("----------------------------------------")
-       //println(b) // both b and a are created out" b" is printed "a " gives null pointer exception
-      // println(global.vertices.count)
+     
       if(edge.srcAttr.takeRight(2)==":0" && edge.dstAttr.takeRight(2) ==":0"){
+          if(edge.attr == -1 ){
+            
            val src_in=edge.srcId
            val dst_in = edge.dstId
           
@@ -165,13 +165,13 @@ object LoadWikipediaArticles extends Logging {
                x=y2.dropRight(2).toDouble
             }
             println(src_in + " " +dst_in+ " " +x)
-         
-             
+            edge.attr=x
+          }  
       
       
-        if (edge.srcAttr.dropRight(2).toDouble + x < edge.dstAttr.dropRight(2).toDouble ) {
+        if (edge.srcAttr.dropRight(2).toDouble + edge.attr < edge.dstAttr.dropRight(2).toDouble ) {
          
-          Iterator((edge.dstId, edge.srcAttr.dropRight(2).toDouble +x))
+          Iterator((edge.dstId, edge.srcAttr.dropRight(2).toDouble +edge.attr))
          
        } 
         else{Iterator.empty}

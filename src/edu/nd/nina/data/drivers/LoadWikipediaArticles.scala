@@ -10,6 +10,8 @@ import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.io.LongWritable
 import org.apache.hadoop.io.Text
 import org.apache.spark.storage.StorageLevel
+import org.apache.log4j.Logger
+import org.apache.log4j.PropertyConfigurator
 
 object LoadWikipediaArticles extends Logging {
 
@@ -18,7 +20,9 @@ object LoadWikipediaArticles extends Logging {
       System.err.println("Usage: LoadWikipediaArticles <master> <file>")
       System.exit(1)
     }
-
+    
+    PropertyConfigurator.configure("./conf/log4j.properties")
+    
     val sparkconf = new SparkConf()
       .set("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
       .set("spark.kryo.registrator", "org.apache.spark.graphx.GraphKryoRegistrator")
@@ -34,10 +38,11 @@ object LoadWikipediaArticles extends Logging {
 
   }
 
-  def loadWikipedia(sc: SparkContext, rawData: String, numParts: Int): Graph[WikiArticle, Double] = {
+  def loadWikipedia(sc: SparkContext, rawData: String, numParts: Int): Graph[String, Double] = {
     val (vertices, edges) = extractLinkGraph(sc, rawData, numParts)
 
     val g = Graph(vertices, edges)
+    println("yo " + g.vertices.count)
     logWarning("Graph has %d vertex partitions, %d edge partitions".format(g.vertices.partitions.length, g.edges.partitions.length))
     logWarning(s"DIRTY graph has ${g.triplets.count()} EDGES, ${g.vertices.count()} VERTICES")
 
@@ -49,11 +54,12 @@ object LoadWikipediaArticles extends Logging {
 
     logWarning(s"ORIGINAL graph has ${cleanG.triplets.count()} EDGES, ${cleanG.vertices.count()} VERTICES")
     logWarning(s"CLEAN graph has ${cleanG.triplets.count()} EDGES, ${cleanG.vertices.count()} VERTICES")
-
+    println("CLean Graph")
+    
     cleanG
   }
 
-  def extractLinkGraph(sc: SparkContext, rawData: String, numParts: Int): (RDD[(VertexId, WikiArticle)], RDD[Edge[Double]]) = {
+  def extractLinkGraph(sc: SparkContext, rawData: String, numParts: Int): (RDD[(VertexId, String)], RDD[Edge[Double]]) = {
     val conf = new Configuration
     conf.set("key.value.separator.in.input.line", " ")
     conf.set("xmlinput.start", "<page>")
@@ -63,14 +69,16 @@ object LoadWikipediaArticles extends Logging {
       .map(t => t._2.toString).coalesce(numParts, false)
     val allArtsRDD = xmlRDD.map {
       raw => new WikiArticle(raw) }
-
+     
     val wikiRDD = allArtsRDD.filter {
       art => art.relevant
     }.cache().setName("wikiRDD")
     logWarning(s"wikiRDD counted. Found ${wikiRDD.count} relevant articles in ${wikiRDD.partitions.size} partitions")
 
-    val vertices: RDD[(VertexId, WikiArticle)] = wikiRDD.map { art => (art.vertexID, art) }
+    val vertices: RDD[(VertexId, String)] = wikiRDD.map { art => (art.vertexID, art.toString) }
+
     val edges: RDD[Edge[Double]] = wikiRDD.flatMap { art => art.edges }
+   
     (vertices, edges)
   }
 

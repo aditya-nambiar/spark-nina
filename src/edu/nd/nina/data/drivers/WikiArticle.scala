@@ -12,9 +12,19 @@ import java.nio.ByteBuffer
 import org.apache.spark.graphx._
 
 class WikiArticle(wtext: String) extends Serializable {
-  val links: Array[String] = WikiArticle.parseLinks(wtext)
+  val nsXML = WikiArticle.namespacePattern.findFirstIn(wtext).getOrElse("")
+    val namespace : String = {
+    try {
+      XML.loadString(nsXML).text
+    } catch {
+      case e => WikiArticle.notFoundString // don't use null because we get null pointer exceptions
+    }
+  }
+  val (links,extra): (Array[String],Array[String]) = WikiArticle.parseLinks(wtext,namespace)
   val neighbors = links.map(WikiArticle.titleHash).distinct
-  val namespace = WikiArticle.namespacePattern.findFirstIn(wtext).getOrElse("")  
+  val ee1 = extra.map(WikiArticle.titleHash).distinct
+ // val namespace = WikiArticle.namespacePattern.findFirstIn(wtext).getOrElse("") 
+   
   val redirect: Boolean = !WikiArticle.redirectPattern.findFirstIn(wtext).isEmpty
   val stub: Boolean = !WikiArticle.stubPattern.findFirstIn(wtext).isEmpty
   val disambig: Boolean = !WikiArticle.disambigPattern.findFirstIn(wtext).isEmpty
@@ -26,6 +36,7 @@ class WikiArticle(wtext: String) extends Serializable {
       case e => WikiArticle.notFoundString // don't use null because we get null pointer exceptions
     }
   }
+
   val newTitle = namespace match {
     case "0" => title
     case "14" => "Category:"+title
@@ -33,18 +44,25 @@ class WikiArticle(wtext: String) extends Serializable {
   }
   
   val relevant: Boolean = !(redirect || stub || disambig || title == WikiArticle.notFoundString || title == null)
-  val vertexID: VertexId = WikiArticle.titleHash(title)
+  val vertexID: VertexId = WikiArticle.titleHash(newTitle)
   val edges: HashSet[Edge[Double]] = {
     val temp = neighbors.map { n => Edge(vertexID, n, 1.0) }
+    val ee2 = ee1.map{n => Edge(n,vertexID,1.0)}
     val set = new HashSet[Edge[Double]]() ++ temp
-    set
+    val set1 = set ++ ee2
+     set1
   }
+  
+    override def toString(): String = {
+    title + ":" + namespace 
+  }  
+}
   // val edges: HashSet[(VertexId, VertexId)] = {
   //   val temp = neighbors.map { n => (vertexID, n) }
   //   val set = new HashSet[(VertexId, VertexId)]() ++ temp
   //   set
   // }
-}
+
 
 object WikiArticle {
   val titlePattern = "<title>(.*)<\\/title>".r
@@ -56,8 +74,9 @@ object WikiArticle {
 
   val notFoundString = "NOTFOUND"
 
-  private def parseLinks(wt: String): Array[String] = {
+  private def parseLinks(wt: String,ns : String): (Array[String],Array[String]) = {
     val linkBuilder = new mutable.ArrayBuffer[String]()
+    val ee = new mutable.ArrayBuffer[String]()
     val matcher: Matcher = linkPattern.matcher(wt)
     while (matcher.find()) {
       val temp: Array[String] = matcher.group(1).split("\\|")
@@ -65,10 +84,16 @@ object WikiArticle {
         val link: String = temp(0)
         if (!link.contains(":") || link.startsWith("Category:") ) {
           linkBuilder += link
+         
+          if(link.startsWith("Category:") && ns =="0" ){
+            {ee += link    
+           
+            }
+          }
         }
       }
     }
-    return linkBuilder.toArray
+    return (linkBuilder.toArray,ee.toArray)
   }
 
   // substitute underscores for spaces and make lowercase

@@ -14,6 +14,9 @@ import org.apache.log4j.Logger
 import org.apache.log4j.PropertyConfigurator
 import edu.nd.nina.test.ApproxDiameter
 import org.apache.spark.graphx.util.GraphGenerators
+import org.apache.spark.graphx.util.GraphGenerators
+import scala.util.Random
+import scala.collection.mutable.ArrayBuffer
 
 object LoadWikipediaArticles extends Logging {
   var global: Graph[Wikivertex, Double] = _
@@ -33,17 +36,75 @@ object LoadWikipediaArticles extends Logging {
 
     val sc = new SparkContext(args(0), "LoadWikipediaArticles", sparkconf)
 
-    GraphGenerators.logNormalGraph(sc, numVertices = 100).mapVertices( (id, _) => id.toDouble )
-    
+   
     val g = loadWikipedia(sc, args(1), 4)
 
     //g.vertices.saveAsTextFile("hdfs://dsg2.crc.nd.edu/data/enwiki/aditya_vertices")
     //g.edges.saveAsTextFile("hdfs://dsg2.crc.nd.edu/data/enwiki/aditya_edges")
-
+    
+    val ty=generategraph(10,6,2,sc)
+    
+    val p= ty.edges.collect
+    for(x <- p){
+      println( x.srcId+ " "+ x.dstId+ " "+x.attr)
+    }
+    
     sc.stop
 
   }
+ 
+  def generategraph(num_art :Int, num_cat : Int, branch: Int ,sc: SparkContext): Graph[Double,Int]={
+    
+    val art: Graph[Double,Int] =
+     GraphGenerators.logNormalGraph(sc, num_art).mapVertices( (id, _) => id.toDouble )
+    
+    val cat: Graph[Double, Int] =
+     GraphGenerators.logNormalGraph(sc, num_cat).mapVertices( (id, _) => id.toDouble )
+     
+    val cattp= cat.vertices
+    val cattp2 = cat.edges
+   
+    val try1:RDD[(VertexId,Double)] = cattp.map( a => (a._1+(num_art*10),a._2))
+    val try2:RDD[Edge[Int]]= cattp2.map( a => Edge(a.srcId+(num_art*10),a.dstId+(num_art*10),a.attr))
+    val try3:RDD[(VertexId,Double)] = try1.union(art.vertices)
+    var try4:RDD[Edge[Int]] = try2.union(art.edges)
+    
+    
+    println(try4.count)
+    
+    for( x <- art.vertices.collect){
+      var temp = ArrayBuffer.empty[Long]
+      var ran = new Random()  //Are all these automatically deleted?
+      for(y <-  1 to branch){
+        var num = num_art*10 + ran.nextInt(num_cat) 
+        println("Yay" + num)
+        temp+=num
+       
+        
+      }
+     // println("Hello " + temp.length)
+     
+      val try5: RDD[Edge[Int]] =sc.parallelize((temp.map(z => Edge(x._1,z,1))), 1)
+      val try6: RDD[Edge[Int]] =sc.parallelize((temp.map(z => Edge(z,x._1,1))), 4)
+     
+      try4= try4.union(try5)
+      try4 =try4.union(try6)
+      
+    }
+   
+    println(try4.count)
+    val categ= Graph[Double,Int](try3,try4)
+    
+    
+    categ
+    
+//    val vertices: RDD[(VertexId, Wikivertex)] = a.mapVertices.map {  => (art.vertexID, art.toWikivertex) }
+//
+//    val edges: RDD[Edge[Double]] = wikiRDD.flatMap { art => art.edges }
 
+   
+    
+  }
   def loadWikipedia(sc: SparkContext, rawData: String, numParts: Int): Graph[Wikivertex, Double] = {
     val (vertices, edges) = extractLinkGraph(sc, rawData, numParts)
 

@@ -11,6 +11,7 @@ import java.security.MessageDigest
 import java.nio.ByteBuffer
 import org.apache.spark.graphx._
 
+
 class WikiArticle(wtext: String) extends Serializable {
   val nsXML = WikiArticle.namespacePattern.findFirstIn(wtext).getOrElse("")
     val namespace : String = {
@@ -53,8 +54,9 @@ class WikiArticle(wtext: String) extends Serializable {
      set1
   }
   
-    override def toString(): String = {
-    title + ":" + namespace 
+    def toWikivertex(): Wikivertex = {
+     val a = new Wikivertex(0,namespace.toInt,title)
+     a
   }  
 }
   // val edges: HashSet[(VertexId, VertexId)] = {

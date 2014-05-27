@@ -37,70 +37,84 @@ object LoadWikipediaArticles extends Logging {
     val sc = new SparkContext(args(0), "LoadWikipediaArticles", sparkconf)
 
    
-    val g = loadWikipedia(sc, args(1), 4)
+    //val g = loadWikipedia(sc, args(1), 4)
 
     //g.vertices.saveAsTextFile("hdfs://dsg2.crc.nd.edu/data/enwiki/aditya_vertices")
     //g.edges.saveAsTextFile("hdfs://dsg2.crc.nd.edu/data/enwiki/aditya_edges")
     
-    val ty=generategraph(10,6,2,sc)
+    val ty=generategraph(18,20,1,sc)
     
-    val p= ty.edges.collect
-    for(x <- p){
-      println( x.srcId+ " "+ x.dstId+ " "+x.attr)
+    val rt = ty.vertices.collect
+    val rt2 = ty.edges.collect
+    println("Vertices name followed by namespace")
+    for( x <- rt ){
+     println(x._2.title + " " +x._2.ns )
     }
+    println("Edges Sources and destitnation ids")
+    for(x <- rt2){
+      
+     println(x.srcId+ " " + x.dstId)
+    }
+
     
+    /*
+     val rvid = ty.vertices.first._1
+     val temp = ty.mapTriplets(x => if (x.srcAttr.ns == 0 && x.dstAttr.ns == 0) -1.0 else 1.0)
+
+     val (tp1, tp2) = sssp(temp, rvid)
+   
+    */
     sc.stop
 
   }
  
-  def generategraph(num_art :Int, num_cat : Int, branch: Int ,sc: SparkContext): Graph[Double,Int]={
+  def generategraph(num_art :Int, num_cat : Int, branch: Int ,sc: SparkContext): Graph[Wikivertex,Double]={
     
-    val art: Graph[Double,Int] =
-     GraphGenerators.logNormalGraph(sc, num_art).mapVertices( (id, _) => id.toDouble )
+    val art: Graph[Wikivertex,Double] =
+     GraphGenerators.logNormalGraph(sc, num_art).mapVertices( (id, _) => new Wikivertex(0,0,id.toString) ).mapEdges(x => x.attr.toDouble)
     
+     
     val cat: Graph[Double, Int] =
      GraphGenerators.logNormalGraph(sc, num_cat).mapVertices( (id, _) => id.toDouble )
-     
+    val q= art.edges.filter( a=> a.srcId!= a.dstId)
     val cattp= cat.vertices
-    val cattp2 = cat.edges
-   
-    val try1:RDD[(VertexId,Double)] = cattp.map( a => (a._1+(num_art*10),a._2))
-    val try2:RDD[Edge[Int]]= cattp2.map( a => Edge(a.srcId+(num_art*10),a.dstId+(num_art*10),a.attr))
-    val try3:RDD[(VertexId,Double)] = try1.union(art.vertices)
-    var try4:RDD[Edge[Int]] = try2.union(art.edges)
+    val cattp2 = cat.edges.filter(a=> a.srcId != a.dstId)
+   // println("-------------------------------------")
+    //for ( r <- cattp2){println( r.srcId+ " "+ r.dstId)}
+    //println("-------------------------------------")
+    val try1:RDD[(VertexId,Wikivertex)] = cattp.map( a => ((a._1.toInt+(num_art*10)).toLong,new Wikivertex(0,14, ((a._1 + (num_art*10)).toString))))
+    val try2:RDD[Edge[Double]]= cattp2.map( a =>Edge(a.srcId+(num_art*10),a.dstId+(num_art*10),a.attr.toDouble))
+    val try3:RDD[(VertexId,Wikivertex)] = try1.union(art.vertices)
+    var try4:RDD[Edge[Double]] = try2.union(q)
     
-    
-    println(try4.count)
+ 
     
     for( x <- art.vertices.collect){
       var temp = ArrayBuffer.empty[Long]
       var ran = new Random()  //Are all these automatically deleted?
       for(y <-  1 to branch){
         var num = num_art*10 + ran.nextInt(num_cat) 
-        println("Yay" + num)
+       
         temp+=num
        
         
       }
-     // println("Hello " + temp.length)
+  
      
-      val try5: RDD[Edge[Int]] =sc.parallelize((temp.map(z => Edge(x._1,z,1))), 1)
-      val try6: RDD[Edge[Int]] =sc.parallelize((temp.map(z => Edge(z,x._1,1))), 4)
+      val try5: RDD[Edge[Double]] =sc.parallelize((temp.map(z => Edge(x._1,z,1.0))), 1)
+      val try6: RDD[Edge[Double]] =sc.parallelize((temp.map(z => Edge(z,x._1,1.0))), 4)
      
       try4= try4.union(try5)
       try4 =try4.union(try6)
       
     }
    
-    println(try4.count)
-    val categ= Graph[Double,Int](try3,try4)
+    
+    val categ= Graph[Wikivertex,Double](try3,try4)
     
     
     categ
     
-//    val vertices: RDD[(VertexId, Wikivertex)] = a.mapVertices.map {  => (art.vertexID, art.toWikivertex) }
-//
-//    val edges: RDD[Edge[Double]] = wikiRDD.flatMap { art => art.edges }
 
    
     

@@ -1,31 +1,27 @@
-package edu.nd.nina.data.drivers
+package edu.nd.nina.wiki
 
 import java.util.regex.Pattern
 import java.util.regex.Matcher
-import scala.util.matching.Regex
 import scala.collection.mutable
 import scala.xml._
-import org.apache.spark.serializer.KryoRegistrator
 import scala.collection.immutable.HashSet
-import java.security.MessageDigest
-import java.nio.ByteBuffer
 import org.apache.spark.graphx._
+import scala.Array.canBuildFrom
 
-
-class WikiArticle(wtext: String) extends Serializable {
+class WikiArticle(wtext: String) {
   val nsXML = WikiArticle.namespacePattern.findFirstIn(wtext).getOrElse("")
-    val namespace : String = {
+  val namespace: String = {
     try {
       XML.loadString(nsXML).text
     } catch {
       case e => WikiArticle.notFoundString // don't use null because we get null pointer exceptions
     }
   }
-  val (links,extra): (Array[String],Array[String]) = WikiArticle.parseLinks(wtext,namespace)
+  val (links, extra): (Array[String], Array[String]) = WikiArticle.parseLinks(wtext, namespace)
   val neighbors = links.map(WikiArticle.titleHash).distinct
   val ee1 = extra.map(WikiArticle.titleHash).distinct
- // val namespace = WikiArticle.namespacePattern.findFirstIn(wtext).getOrElse("") 
-   
+  // val namespace = WikiArticle.namespacePattern.findFirstIn(wtext).getOrElse("") 
+
   val redirect: Boolean = !WikiArticle.redirectPattern.findFirstIn(wtext).isEmpty
   val stub: Boolean = !WikiArticle.stubPattern.findFirstIn(wtext).isEmpty
   val disambig: Boolean = !WikiArticle.disambigPattern.findFirstIn(wtext).isEmpty
@@ -40,31 +36,30 @@ class WikiArticle(wtext: String) extends Serializable {
 
   val newTitle = namespace match {
     case "0" => title
-    case "14" => "Category:"+title
+    case "14" => "Category:" + title
     case _ => null
   }
-  
+
   val relevant: Boolean = !(redirect || stub || disambig || title == WikiArticle.notFoundString || title == null)
   val vertexID: VertexId = WikiArticle.titleHash(newTitle)
   val edges: HashSet[Edge[Double]] = {
     val temp = neighbors.map { n => Edge(vertexID, n, 1.0) }
-    val ee2 = ee1.map{n => Edge(n,vertexID,1.0)}
+    val ee2 = ee1.map { n => Edge(n, vertexID, 1.0) }
     val set = new HashSet[Edge[Double]]() ++ temp
     val set1 = set ++ ee2
-     set1
+    set1
   }
-  
-    def toWikivertex(): Wikivertex = {
-     val a = new Wikivertex(0,namespace.toInt,title)
-     a
-  }  
-}
-  // val edges: HashSet[(VertexId, VertexId)] = {
-  //   val temp = neighbors.map { n => (vertexID, n) }
-  //   val set = new HashSet[(VertexId, VertexId)]() ++ temp
-  //   set
-  // }
 
+  def toWikivertex(): WikiVertex = {
+    val a = new WikiVertex(0, namespace.toInt, title)
+    a
+  }
+}
+// val edges: HashSet[(VertexId, VertexId)] = {
+//   val temp = neighbors.map { n => (vertexID, n) }
+//   val set = new HashSet[(VertexId, VertexId)]() ++ temp
+//   set
+// }
 
 object WikiArticle {
   val titlePattern = "<title>(.*)<\\/title>".r
@@ -76,7 +71,7 @@ object WikiArticle {
 
   val notFoundString = "NOTFOUND"
 
-  private def parseLinks(wt: String,ns : String): (Array[String],Array[String]) = {
+  private def parseLinks(wt: String, ns: String): (Array[String], Array[String]) = {
     val linkBuilder = new mutable.ArrayBuffer[String]()
     val ee = new mutable.ArrayBuffer[String]()
     val matcher: Matcher = linkPattern.matcher(wt)
@@ -84,18 +79,19 @@ object WikiArticle {
       val temp: Array[String] = matcher.group(1).split("\\|")
       if (temp != null && temp.length > 0) {
         val link: String = temp(0)
-        if (!link.contains(":") || link.startsWith("Category:") ) {
+        if (!link.contains(":") || link.startsWith("Category:")) {
           linkBuilder += link
-         
-          if(link.startsWith("Category:") && ns =="0" ){
-            {ee += link    
-           
+
+          if (link.startsWith("Category:") && ns == "0") {
+            {
+              ee += link
+
             }
           }
         }
       }
     }
-    return (linkBuilder.toArray,ee.toArray)
+    return (linkBuilder.toArray, ee.toArray)
   }
 
   // substitute underscores for spaces and make lowercase

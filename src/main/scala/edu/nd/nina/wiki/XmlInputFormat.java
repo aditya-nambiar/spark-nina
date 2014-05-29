@@ -1,4 +1,4 @@
-package edu.nd.nina.data.drivers;
+package edu.nd.nina.wiki;
 
 /**
  * Licensed to the Apache Software Foundation (ASF) under one or more
@@ -51,6 +51,7 @@ import com.google.common.io.Closeables;
  */
 public class XmlInputFormat extends TextInputFormat {
 
+	
 	private static final Logger log = LoggerFactory
 			.getLogger(XmlInputFormat.class);
 

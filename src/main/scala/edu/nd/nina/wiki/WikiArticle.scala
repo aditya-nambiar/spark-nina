@@ -3,6 +3,7 @@ package edu.nd.nina.wiki
 import java.util.regex.Pattern
 import java.util.regex.Matcher
 import scala.collection.mutable
+import scala.collection.mutable.ArrayBuffer
 import scala.xml._
 import scala.collection.immutable.HashSet
 import org.apache.spark.graphx._
@@ -51,7 +52,7 @@ class WikiArticle(wtext: String) {
   }
 
   def toWikivertex(): WikiVertex = {
-    val a = new WikiVertex(0, namespace.toInt, title)
+    val a = new WikiVertex(0, namespace.toInt, title, Array.empty[VertexId])
     a
   }
 }

@@ -6,8 +6,13 @@ import org.apache.spark.graphx.PartitionStrategy
 import org.apache.spark.Logging
 import scala.collection.mutable.ArrayBuffer
 import scala.collection.immutable.List
+import scala.collection.mutable.Set
 object ComputeCategoryDistance extends Logging {
-  var global: Graph[WikiVertex, Double] = _
+    var fin_art1 :collection.mutable.Set[VertexId] = Set.empty
+    var fin_art2 :collection.mutable.Set[VertexId] = Set.empty
+    var use2: Boolean = false
+    var clean_flag = true
+    var msg_flow : Int = 0
 
   def compute(g: Graph[WikiVertex, Double]): Graph[WikiVertex, Double] = {
     println("yo " + g.vertices.count)
@@ -42,19 +47,39 @@ object ComputeCategoryDistance extends Logging {
     var init = g.mapVertices((id, x) => if (id == src) { new WikiVertex(0, x.ns, x.title, x.neighbours) } else { new WikiVertex(Double.PositiveInfinity, x.ns, x.title, x.neighbours) })
 
     def vertexProgram(src: VertexId, oldDist: WikiVertex, recmsgs: List[Msg]): WikiVertex =
-      {
+      { 
+        if(clean_flag == true){//first VP after SM
+          if(use2==false ){//fin_art2 was used earlier use it
+            fin_art1.clear() //and store in fin_art1
+            
+          }
+          else{
+            fin_art2.clear()
+          }
+          use2 = !use2
+          clean_flag=false
+          println("Messages in flow :" + msg_flow )
+          msg_flow =0
+        }
         //println("Executing on vertex")
         if (oldDist.dist != Double.PositiveInfinity && oldDist.dist !=0 ) {
-          
+          if(use2==true)
+           fin_art1 += src
+          else
+           fin_art2 +=src
           return new WikiVertex(oldDist.dist,oldDist.ns,oldDist.title,oldDist.neighbours,true)
         }
         if(oldDist.dist ==0){
           
           if(oldDist.start==false)
             return new WikiVertex(oldDist.dist,oldDist.ns,oldDist.title,oldDist.neighbours,false,true)
-          else
+          else{
+            if(use2==true)
+            fin_art1 += src
+            else
+              fin_art2+=src
             return new WikiVertex(oldDist.dist,oldDist.ns,oldDist.title,oldDist.neighbours,true,true)
-            
+          }
             
         }
       
@@ -62,6 +87,8 @@ object ComputeCategoryDistance extends Logging {
          // var mini: Double = Double.PositiveInfinity
           val min = recmsgs.reduce((x, y) => if (x.dist < y.dist) x else y)
           if(min.dist.isInfinite()){return oldDist}
+                    println(oldDist.title + " " + min.dist)
+
           return new WikiVertex(min.dist + 1, oldDist.ns, oldDist.title, oldDist.neighbours)
 
         } else { //Category
@@ -70,9 +97,22 @@ object ComputeCategoryDistance extends Logging {
           var temp_node = new WikiVertex(Double.PositiveInfinity, oldDist.ns, oldDist.title, oldDist.neighbours)
           recmsgs.foreach(x =>
             if (x.dist != Double.PositiveInfinity && x.dist > -1) {
-              var newmsg = new Msg(x.to, x.dist + 1)
-              temp_msg_buff = newmsg :: temp_msg_buff
+              if(x.d_ac < 6 ){
+                  if (use2 ==true && !fin_art2.contains(x.to))
+	              {var newmsg = new Msg(x.to, x.dist + 1,x.d_ac +1)
+	              temp_msg_buff = newmsg :: temp_msg_buff
+	             
+	              }
+                  else if (use2 == false && !fin_art1.contains(x.to))
+                  {
+                  var newmsg = new Msg(x.to, x.dist + 1,x.d_ac +1)
+	              temp_msg_buff = newmsg :: temp_msg_buff
+	              
+                  }
+              }
             })
+            msg_flow = msg_flow + temp_msg_buff.length
+          //  println("tp "+ temp_msg_buff.length+ " " + src)
           temp_node.col_msg = temp_msg_buff
 
           return temp_node
@@ -82,7 +122,7 @@ object ComputeCategoryDistance extends Logging {
 
     def sendMessage(edge: EdgeTriplet[WikiVertex, Double]): Iterator[(VertexId, List[Msg])] =
       {
-        
+        clean_flag = true
         if (edge.srcAttr.ns == 0 && edge.dstAttr.ns == 14) { // Article to Category
           if(edge.srcAttr.isDead==true){
             Iterator.empty
@@ -147,11 +187,12 @@ object ComputeCategoryDistance extends Logging {
       messageCombiner)
 
     println("----------------------------------------------")
+    
     var summed = 1.0
-    /* val tp1 = sssp.vertices.collect
+     val tp1 = sssp.vertices.collect
     for ((x, y) <- tp1) { println(y.title + " " + y.dist) }
-    var summed = sssp.vertices.map((a) => a._2.dist).reduce(math.max(_, _))
-*/
+   // var summed = sssp.vertices.map((a) => a._2.dist).reduce(math.max(_, _))
+
     (sssp, summed)
   }
 
@@ -159,8 +200,11 @@ object ComputeCategoryDistance extends Logging {
 
   }
 }
-class Msg(a: VertexId, b: Double) extends Serializable {
+class Msg(a: VertexId, b: Double, c : Int) extends Serializable {
+  
+  def this(a: VertexId, b: Double) = this(a,b,0)
   var to = a
   var dist = b
-
+  var d_ac : Int = c
+  
 }

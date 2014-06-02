@@ -42,7 +42,7 @@ object LoadWikipediaArticles extends Logging {
     val sc = new SparkContext(args(0), "LoadWikipediaArticles", sparkconf)
     
 
-    val ty = GenerateWikiGraph.generategraph(18, 20, 1, sc)
+    val ty = GenerateWikiGraph.generategraph(1800, 400, 1, sc)
 
     val rt = ty.vertices.collect
     val rt2 = ty.edges.collect

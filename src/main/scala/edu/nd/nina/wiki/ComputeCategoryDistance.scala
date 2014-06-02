@@ -8,11 +8,12 @@ import scala.collection.mutable.ArrayBuffer
 import scala.collection.immutable.List
 import scala.collection.mutable.Set
 object ComputeCategoryDistance extends Logging {
-    var fin_art1 :collection.mutable.Set[VertexId] = Set.empty
-    var fin_art2 :collection.mutable.Set[VertexId] = Set.empty
-    var use2: Boolean = false
-    var clean_flag = true
-    var msg_flow : Int = 0
+  var fin_art1: collection.mutable.Set[VertexId] = Set.empty
+  var fin_art2: collection.mutable.Set[VertexId] = Set.empty
+  var use2: Boolean = false
+  var clean_flag = true
+  var msg_flow: Int = 0
+  var killed: Int = 0
 
   def compute(g: Graph[WikiVertex, Double]): Graph[WikiVertex, Double] = {
     println("yo " + g.vertices.count)
@@ -47,47 +48,49 @@ object ComputeCategoryDistance extends Logging {
     var init = g.mapVertices((id, x) => if (id == src) { new WikiVertex(0, x.ns, x.title, x.neighbours) } else { new WikiVertex(Double.PositiveInfinity, x.ns, x.title, x.neighbours) })
 
     def vertexProgram(src: VertexId, oldDist: WikiVertex, recmsgs: List[Msg]): WikiVertex =
-      { 
-        if(clean_flag == true){//first VP after SM
-          if(use2==false ){//fin_art2 was used earlier use it
+      {
+        if (clean_flag == true) { //first VP after SM
+          if (use2 == false) { //fin_art2 was used earlier use it
             fin_art1.clear() //and store in fin_art1
-            
-          }
-          else{
+
+          } else {
             fin_art2.clear()
           }
           use2 = !use2
-          clean_flag=false
-          println("Messages in flow :" + msg_flow )
-          msg_flow =0
+          clean_flag = false
+          println("Messages in flow :" + msg_flow)
+          println("Killed " + killed)
+          msg_flow = 0
         }
         //println("Executing on vertex")
-        if (oldDist.dist != Double.PositiveInfinity && oldDist.dist !=0 ) {
-          if(use2==true)
-           fin_art1 += src
-          else
-           fin_art2 +=src
-          return new WikiVertex(oldDist.dist,oldDist.ns,oldDist.title,oldDist.neighbours,true)
-        }
-        if(oldDist.dist ==0){
-          
-          if(oldDist.start==false)
-            return new WikiVertex(oldDist.dist,oldDist.ns,oldDist.title,oldDist.neighbours,false,true)
-          else{
-            if(use2==true)
+        if (oldDist.dist != Double.PositiveInfinity && oldDist.dist != 0) {
+        /*  if (use2 == true)
             fin_art1 += src
-            else
-              fin_art2+=src
-            return new WikiVertex(oldDist.dist,oldDist.ns,oldDist.title,oldDist.neighbours,true,true)
-          }
-            
+          else
+            fin_art2 += src*/
+          killed = killed + 1
+          return new WikiVertex(oldDist.dist, oldDist.ns, oldDist.title, oldDist.neighbours, true)
         }
-      
+        if (oldDist.dist == 0) {
+
+          if (oldDist.start == false)
+            return new WikiVertex(oldDist.dist, oldDist.ns, oldDist.title, oldDist.neighbours, false, true)
+          else {
+        /*    if (use2 == true)
+              fin_art1 += src
+            else
+              fin_art2 += src*/
+
+            killed = killed + 1
+            return new WikiVertex(oldDist.dist, oldDist.ns, oldDist.title, oldDist.neighbours, true, true)
+          }
+
+        }
         if (oldDist.ns == 0) { //Article
-         // var mini: Double = Double.PositiveInfinity
+          // var mini: Double = Double.PositiveInfinity
           val min = recmsgs.reduce((x, y) => if (x.dist < y.dist) x else y)
-          if(min.dist.isInfinite()){return oldDist}
-                    println(oldDist.title + " " + min.dist)
+          if (min.dist.isInfinite()) { return oldDist }
+          println("Ya " + oldDist.title + " " + min.dist)
 
           return new WikiVertex(min.dist + 1, oldDist.ns, oldDist.title, oldDist.neighbours)
 
@@ -97,21 +100,23 @@ object ComputeCategoryDistance extends Logging {
           var temp_node = new WikiVertex(Double.PositiveInfinity, oldDist.ns, oldDist.title, oldDist.neighbours)
           recmsgs.foreach(x =>
             if (x.dist != Double.PositiveInfinity && x.dist > -1) {
-              if(x.d_ac < 6 ){
-                  if (use2 ==true && !fin_art2.contains(x.to))
-	              {var newmsg = new Msg(x.to, x.dist + 1,x.d_ac +1)
-	              temp_msg_buff = newmsg :: temp_msg_buff
-	             
-	              }
-                  else if (use2 == false && !fin_art1.contains(x.to))
+              if (x.d_ac < 9) {
+                //  if (use2 ==true && !fin_art2.contains(x.to))
+                {
+                  var newmsg = new Msg(x.to, x.dist + 1, x.d_ac + 1)
+                  temp_msg_buff = newmsg :: temp_msg_buff
+
+                }
+                /* else if (use2 == false && !fin_art1.contains(x.to))
                   {
                   var newmsg = new Msg(x.to, x.dist + 1,x.d_ac +1)
 	              temp_msg_buff = newmsg :: temp_msg_buff
 	              
-                  }
+                  }*/
               }
             })
-            msg_flow = msg_flow + temp_msg_buff.length
+          msg_flow = msg_flow + temp_msg_buff.length
+
           //  println("tp "+ temp_msg_buff.length+ " " + src)
           temp_node.col_msg = temp_msg_buff
 
@@ -124,24 +129,23 @@ object ComputeCategoryDistance extends Logging {
       {
         clean_flag = true
         if (edge.srcAttr.ns == 0 && edge.dstAttr.ns == 14) { // Article to Category
-          if(edge.srcAttr.isDead==true){
+          if (edge.srcAttr.isDead == true) {
             Iterator.empty
-          }
-          else{
-              
-	          if (edge.srcAttr.dist.isInfinity) {
-	            Iterator.empty
-	          } else {
-	            var i =  List.empty[Msg]
-	            for (n <- edge.srcAttr.neighbours) {
-	              var tp = new Msg(n, edge.srcAttr.dist)
-	              i = tp :: i 
-	            }
-	            var tp = new Msg(edge.srcId,edge.srcAttr.dist)
-	            i = tp:: i
-	           
-	            Iterator((edge.dstId, i))
-	          }
+          } else {
+
+            if (edge.srcAttr.dist.isInfinity) {
+              Iterator.empty
+            } else {
+              var i = List.empty[Msg]
+              for (n <- edge.srcAttr.neighbours) {
+                var tp = new Msg(n, edge.srcAttr.dist)
+                i = tp :: i
+              }
+              var tp = new Msg(edge.srcId, edge.srcAttr.dist,7)
+              i = tp :: i
+
+              Iterator((edge.dstId, i))
+            }
           }
 
         } else if (edge.srcAttr.ns == 14 && edge.dstAttr.ns == 14) { // Category to Category
@@ -154,10 +158,10 @@ object ComputeCategoryDistance extends Logging {
         } else if (edge.srcAttr.ns == 14 && edge.dstAttr.ns == 0) { // Category to Article
           var temp_msg_buf = List.empty[Msg]
           edge.srcAttr.col_msg.foreach(x =>
-            if (edge.dstId == x.to ) {
+            if (edge.dstId == x.to) {
               temp_msg_buf = x :: temp_msg_buf
             })
-          if (temp_msg_buf.isEmpty || edge.dstAttr.isDead==true) {
+          if (temp_msg_buf.isEmpty || edge.dstAttr.isDead == true) {
             Iterator.empty
           } else {
             Iterator((edge.dstId, temp_msg_buf))
@@ -187,11 +191,13 @@ object ComputeCategoryDistance extends Logging {
       messageCombiner)
 
     println("----------------------------------------------")
-    
+
     var summed = 1.0
-     val tp1 = sssp.vertices.collect
-    for ((x, y) <- tp1) { println(y.title + " " + y.dist) }
-   // var summed = sssp.vertices.map((a) => a._2.dist).reduce(math.max(_, _))
+    val tp1 = sssp.vertices.collect
+    for ((x, y) <- tp1) { 
+      if(x > 0)
+      println(y.title + " " + y.dist) }
+    // var summed = sssp.vertices.map((a) => a._2.dist).reduce(math.max(_, _))
 
     (sssp, summed)
   }
@@ -200,11 +206,11 @@ object ComputeCategoryDistance extends Logging {
 
   }
 }
-class Msg(a: VertexId, b: Double, c : Int) extends Serializable {
-  
-  def this(a: VertexId, b: Double) = this(a,b,0)
+class Msg(a: VertexId, b: Double, c: Int) extends Serializable {
+
+  def this(a: VertexId, b: Double) = this(a, b, 0)
   var to = a
   var dist = b
-  var d_ac : Int = c
-  
+  var d_ac: Int = c
+
 }

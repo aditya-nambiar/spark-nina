@@ -49,7 +49,7 @@ object GenerateWikiGraph {
     val art1: Graph[WikiVertex,Double] =
       GraphGenerators.rmatGraph(sc, num_art, num_art * 5).mapVertices((id, _) => new WikiVertex(0, 0, id.toString,Array.empty[VertexId])).mapEdges(x => x.attr.toDouble)
        
-   
+  
     val nbrs = art1.mapReduceTriplets[Array[VertexId]](
       mapFunc = et => Iterator((et.srcId, Array(et.dstId))),
       reduceFunc = _ ++ _)
@@ -95,7 +95,7 @@ object GenerateWikiGraph {
 
       val try5: RDD[Edge[Double]] = sc.parallelize((temp.map(z => Edge(x._1, z, 1.0))), 1)
       val try6: RDD[Edge[Double]] = sc.parallelize((temp.map(z => Edge(z, x._1, 1.0))), 4)
-
+  
       try4 = try4.union(try5)
       try4 = try4.union(try6)
 

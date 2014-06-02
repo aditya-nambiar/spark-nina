@@ -43,15 +43,25 @@ object ComputeCategoryDistance extends Logging {
 
     def vertexProgram(src: VertexId, oldDist: WikiVertex, recmsgs: List[Msg]): WikiVertex =
       {
-        println("Executing on vertex")
-        if (oldDist.dist != Double.PositiveInfinity) {
-          return oldDist
+        //println("Executing on vertex")
+        if (oldDist.dist != Double.PositiveInfinity && oldDist.dist !=0 ) {
+          
+          return new WikiVertex(oldDist.dist,oldDist.ns,oldDist.title,oldDist.neighbours,true)
         }
-
+        if(oldDist.dist ==0){
+          
+          if(oldDist.start==false)
+            return new WikiVertex(oldDist.dist,oldDist.ns,oldDist.title,oldDist.neighbours,false,true)
+          else
+            return new WikiVertex(oldDist.dist,oldDist.ns,oldDist.title,oldDist.neighbours,true,true)
+            
+            
+        }
+      
         if (oldDist.ns == 0) { //Article
-          var mini: Double = Double.PositiveInfinity
+         // var mini: Double = Double.PositiveInfinity
           val min = recmsgs.reduce((x, y) => if (x.dist < y.dist) x else y)
-
+          if(min.dist.isInfinite()){return oldDist}
           return new WikiVertex(min.dist + 1, oldDist.ns, oldDist.title, oldDist.neighbours)
 
         } else { //Category
@@ -72,17 +82,26 @@ object ComputeCategoryDistance extends Logging {
 
     def sendMessage(edge: EdgeTriplet[WikiVertex, Double]): Iterator[(VertexId, List[Msg])] =
       {
-
+        
         if (edge.srcAttr.ns == 0 && edge.dstAttr.ns == 14) { // Article to Category
-          if (edge.srcAttr.dist.isInfinity) {
+          if(edge.srcAttr.isDead==true){
             Iterator.empty
-          } else {
-            var i =  List.empty[Msg]
-            for (n <- edge.srcAttr.neighbours) {
-              var tp = new Msg(n, edge.srcAttr.dist)
-              i = tp :: i 
-            }
-            Iterator((edge.dstId, i))
+          }
+          else{
+              
+	          if (edge.srcAttr.dist.isInfinity) {
+	            Iterator.empty
+	          } else {
+	            var i =  List.empty[Msg]
+	            for (n <- edge.srcAttr.neighbours) {
+	              var tp = new Msg(n, edge.srcAttr.dist)
+	              i = tp :: i 
+	            }
+	            var tp = new Msg(edge.srcId,edge.srcAttr.dist)
+	            i = tp:: i
+	           
+	            Iterator((edge.dstId, i))
+	          }
           }
 
         } else if (edge.srcAttr.ns == 14 && edge.dstAttr.ns == 14) { // Category to Category
@@ -95,10 +114,10 @@ object ComputeCategoryDistance extends Logging {
         } else if (edge.srcAttr.ns == 14 && edge.dstAttr.ns == 0) { // Category to Article
           var temp_msg_buf = List.empty[Msg]
           edge.srcAttr.col_msg.foreach(x =>
-            if (edge.dstId == x.to) {
+            if (edge.dstId == x.to ) {
               temp_msg_buf = x :: temp_msg_buf
             })
-          if (temp_msg_buf.isEmpty) {
+          if (temp_msg_buf.isEmpty || edge.dstAttr.isDead==true) {
             Iterator.empty
           } else {
             Iterator((edge.dstId, temp_msg_buf))

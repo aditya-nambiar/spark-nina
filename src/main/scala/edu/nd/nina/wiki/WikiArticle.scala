@@ -52,7 +52,9 @@ class WikiArticle(wtext: String) {
   }
 
   def toWikivertex(): WikiVertex = {
+
     val a = new WikiVertex(0, namespace.toInt, title, Array.empty[VertexId])
+
     a
   }
 }

@@ -28,21 +28,27 @@
 			<version>1.0.1-hadoop2.0.0-cdh4.6.0</version>
 			<scope>provided</scope>
 		</dependency>
- 
+
 		<dependency>
 			<groupId>org.apache.spark</groupId>
 			<artifactId>spark-graphx_2.10</artifactId>
 			<version>1.0.1-hadoop2.0.0-cdh4.6.0</version>
 			<scope>provided</scope>
-		</dependency> 
- 
+		</dependency>
+
+		<dependency>
+			<groupId>org.scala-lang</groupId>
+			<artifactId>scala-library</artifactId>
+			<version>2.7.2</version>
+		</dependency>
+
 	</dependencies>
-	
-	<repositories> 
+
+	<repositories>
 		<repository>
 			<id>lib</id>
-			<releases> 
-				<enabled>true</enabled> 
+			<releases>
+				<enabled>true</enabled>
 				<checksumPolicy>ignore</checksumPolicy>
 			</releases>
 			<snapshots>
@@ -50,7 +56,63 @@
 			</snapshots>
 			<url>file://${project.basedir}/lib</url>
 		</repository>
+
+		<repository>
+			<id>scala-tools.org</id>
+			<name>Scala-tools Maven2 Repository</name>
+			<url>http://scala-tools.org/repo-releases</url>
+		</repository>
+
 	</repositories>
-	
-	
+
+
+	<pluginRepositories>
+		<pluginRepository>
+			<id>scala-tools.org</id>
+			<name>Scala-tools Maven2 Repository</name>
+			<url>http://scala-tools.org/repo-releases</url>
+		</pluginRepository>
+	</pluginRepositories>
+
+
+	<build>
+		<plugins>
+			<plugin>
+				<groupId>org.scala-tools</groupId>
+				<artifactId>maven-scala-plugin</artifactId>
+				<executions>
+
+					<execution>
+						<id>compile</id>
+						<goals>
+							<goal>compile</goal>
+						</goals>
+						<phase>compile</phase>
+					</execution>
+					<execution>
+						<id>test-compile</id>
+						<goals>
+							<goal>testCompile</goal>
+						</goals>
+						<phase>test-compile</phase>
+					</execution>
+					<execution>
+						<phase>process-resources</phase>
+						<goals>
+							<goal>compile</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+			<plugin>
+				<artifactId>maven-compiler-plugin</artifactId>
+				<configuration>
+					<source>1.5</source>
+					<target>1.5</target>
+				</configuration>
+			</plugin>
+		</plugins>
+	</build>
+
+
 </project>

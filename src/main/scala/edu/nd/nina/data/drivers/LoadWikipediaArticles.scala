@@ -23,7 +23,6 @@ import edu.nd.nina.wiki.GenerateWikiGraph
 import edu.nd.nina.wiki.ComputeCategoryDistance
 
 object LoadWikipediaArticles extends Logging {
-  
 
   def main(args: Array[String]) {
     if (args.length < 2) {
@@ -34,13 +33,11 @@ object LoadWikipediaArticles extends Logging {
     PropertyConfigurator.configure("./conf/log4j.properties")
 
     val sparkconf = new SparkConf()
-      .set("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
-      .set("spark.kryo.registrator", "org.apache.spark.graphx.GraphKryoRegistrator")
-      
-      
+    sparkconf.set("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
+    sparkconf.set("spark.kryo.registrator", "edu.nd.nina.data.drivers.WikiRegistrator")
+    sparkconf.setMaster("local[1]").setAppName("LoadWikipediaArticles")
 
-    val sc = new SparkContext(args(0), "LoadWikipediaArticles", sparkconf)
-    
+    val sc = new SparkContext(sparkconf)
 
     val ty = GenerateWikiGraph.generategraph(1800, 400, 1, sc)
 
@@ -67,7 +64,5 @@ object LoadWikipediaArticles extends Logging {
 
   }
 
-
-  
 }
 

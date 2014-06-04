@@ -24,7 +24,7 @@ object GenerateWikiGraph {
 
     val sc = new SparkContext(args(0), "LoadWikipediaArticles", sparkconf)
 
-    val (ty,vid) = generategraph(1800, 200, 3, sc)
+    val (ty, vid) = generategraph(1800, 200, 3, sc)
 
     val rt = ty.vertices.collect
     val rt2 = ty.edges.collect
@@ -46,46 +46,33 @@ object GenerateWikiGraph {
 
   def generategraph(num_art: Int, num_cat: Int, branch: Int, sc: SparkContext): (Graph[WikiVertex, Double], VertexId) = {
 
+    val art1: Graph[WikiVertex, Double] =
+      GraphGenerators.rmatGraph(sc, num_art, num_art * 5).mapVertices((id, _) => new WikiVertex(0, 0, id.toString, Array.empty[VertexId])).mapEdges(x => x.attr.toDouble)
 
-    val art1: Graph[WikiVertex,Double] =
-      GraphGenerators.rmatGraph(sc, num_art, num_art * 5).mapVertices((id, _) => new WikiVertex(0, 0, id.toString,Array.empty[VertexId])).mapEdges(x => x.attr.toDouble)
-       
-  
     val nbrs = art1.mapReduceTriplets[Array[VertexId]](
       mapFunc = et => Iterator((et.srcId, Array(et.dstId))),
       reduceFunc = _ ++ _)
-         
-        
-    nbrs.foreach(f => println(f._1 + "+" + f._2.length))
-    
+
     val cat: Graph[Double, Int] =
       GraphGenerators.rmatGraph(sc, num_cat, num_cat * 2).mapVertices((id, _) => id.toDouble)
-      
 
     val art2 = art1.vertices.leftZipJoin(nbrs) { (vid, vdata, nbrsOpt) =>
       vdata.neighbours = nbrsOpt.getOrElse(Array.empty[VertexId])
       vdata
     }
-    
-    art2.foreach(x => println(x._2.neighbours.length))
-    
-    val art = Graph(art2,art1.edges);
 
-    
+    val art = Graph(art2, art1.edges);
+
     val q = art.edges.filter(a => a.srcId != a.dstId)
     val cattp = cat.vertices
     val cattp2 = cat.edges.filter(a => a.srcId != a.dstId)
-    // println("-------------------------------------")
-    //for ( r <- cattp2){println( r.srcId+ " "+ r.dstId)}
-    //println("-------------------------------------")
 
-    val try1: RDD[(VertexId, WikiVertex)] = cattp.map(a => (-a._1 , new WikiVertex(0, 14, (-a._1).toString ,Array.empty[VertexId])))
+    val try1: RDD[(VertexId, WikiVertex)] = cattp.map(a => (-a._1, new WikiVertex(0, 14, (-a._1).toString, Array.empty[VertexId])))
 
-    val try2: RDD[Edge[Double]] = cattp2.map(a => Edge(-a.srcId , -a.dstId , a.attr.toDouble))
+    val try2: RDD[Edge[Double]] = cattp2.map(a => Edge(-a.srcId, -a.dstId, a.attr.toDouble))
     val try3: RDD[(VertexId, WikiVertex)] = try1.union(art.vertices)
     var try4: RDD[Edge[Double]] = try2.union(q)
 
-    
     var ab = ArrayBuffer.empty[Edge[Double]]
     var bc = ArrayBuffer.empty[Edge[Double]]
     val catCol = try1.collect
@@ -101,20 +88,15 @@ object GenerateWikiGraph {
 
       }
 
-      ab =ab ++ temp.map(z => Edge(x._1, z, 1.0))
-      bc =bc ++ temp.map(z => Edge(z, x._1, 1.0))
-  
-    
+      ab = ab ++ temp.map(z => Edge(x._1, z, 1.0))
+      bc = bc ++ temp.map(z => Edge(z, x._1, 1.0))
 
     }
-    
-    try4 = try4.union(sc.parallelize(ab,4))
-    try4 = try4.union(sc.parallelize(bc,4))
-    
-    val categ = Graph[WikiVertex, Double](try3, try4)
 
-    println(categ.edges.partitions.length)
-    println(categ.vertices.partitions.length)
+    try4 = try4.union(sc.parallelize(ab, 4))
+    try4 = try4.union(sc.parallelize(bc, 4))
+
+    val categ = Graph[WikiVertex, Double](try3, try4)
 
     (categ, art1.vertices.first._1)
 

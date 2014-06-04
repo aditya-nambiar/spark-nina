@@ -8,6 +8,7 @@ import scala.collection.mutable.ArrayBuffer
 import scala.collection.immutable.List
 import scala.collection.mutable.Set
 import edu.nd.nina.test.ApproxDiameter
+import edu.nd.nina.test.MyPregel
 object ComputeCategoryDistance extends Logging {
   //  var fin_art1: collection.mutable.Set[VertexId] = Set.empty
   //  var fin_art2: collection.mutable.Set[VertexId] = Set.empty
@@ -35,7 +36,6 @@ object ComputeCategoryDistance extends Logging {
     //  val tp4=cleanG.edges.collect
     // for(x <- tp4){println(x.srcId+ " -> "+ x.dstId+ " Weight " + x.attr)  }
 
-
     println("starting vertex id " + rvid)
     val temp = cleanG.mapTriplets(x => if (x.srcAttr.ns == 0 && x.dstAttr.ns == 0) -1.0 else 1.0)
 
@@ -50,26 +50,9 @@ object ComputeCategoryDistance extends Logging {
 
     def vertexProgram(src: VertexId, oldDist: WikiVertex, recmsgs: List[Msg]): WikiVertex =
       {
-        //        if (clean_flag == true) { //first VP after SM
-        //          if (use2 == false) { //fin_art2 was used earlier use it
-        //            fin_art1.clear() //and store in fin_art1
-        //
-        //          } else {
-        //            fin_art2.clear()
-        //          }
-        //          use2 = !use2
-        //          clean_flag = false
-        //          println("Messages in flow :" + msg_flow)
-        //          println("Killed " + killed)
-        //          msg_flow = 0
-        //        }
-        //println("Executing on vertex")
+
         if (oldDist.dist != Double.PositiveInfinity && oldDist.dist != 0) {
-          /*  if (use2 == true)
-            fin_art1 += src
-          else
-            fin_art2 += src*/
-          //          killed = killed + 1
+
           return new WikiVertex(oldDist.dist, oldDist.ns, oldDist.title, oldDist.neighbours, true)
         }
         if (oldDist.dist == 0) {
@@ -77,18 +60,12 @@ object ComputeCategoryDistance extends Logging {
           if (oldDist.start == false)
             return new WikiVertex(oldDist.dist, oldDist.ns, oldDist.title, oldDist.neighbours, false, true)
           else {
-            /*    if (use2 == true)
-              fin_art1 += src
-            else
-              fin_art2 += src*/
 
-            //            killed = killed + 1
             return new WikiVertex(oldDist.dist, oldDist.ns, oldDist.title, oldDist.neighbours, true, true)
           }
 
         }
         if (oldDist.ns == 0) { //Article
-          // var mini: Double = Double.PositiveInfinity
           val min = recmsgs.reduce((x, y) => if (x.dist < y.dist) x else y)
           if (min.dist.isInfinite()) { return oldDist }
           println("Ya " + oldDist.title + " " + min.dist)
@@ -107,7 +84,7 @@ object ComputeCategoryDistance extends Logging {
 
     def sendMessage(edge: EdgeTriplet[WikiVertex, Double]): Iterator[(VertexId, List[Msg])] =
       {
-        //        clean_flag = true
+
         if (edge.srcAttr.ns == 0 && edge.dstAttr.ns == 14) { // Article to Category
           if (edge.srcAttr.isDead == true) {
             Iterator.empty
@@ -165,7 +142,7 @@ object ComputeCategoryDistance extends Logging {
     val nmsg = new Msg(1L, Double.PositiveInfinity)
     val initMsg = nmsg :: initialMessage
 
-    val sssp = init.pregel(initMsg, Int.MaxValue, EdgeDirection.Out)(
+    val sssp = MyPregel(init, initMsg, Int.MaxValue, EdgeDirection.Out)(
       vertexProgram,
       sendMessage,
       messageCombiner)

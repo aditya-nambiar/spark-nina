@@ -25,8 +25,8 @@ import edu.nd.nina.wiki.ComputeCategoryDistance
 object LoadWikipediaArticles extends Logging {
 
   def main(args: Array[String]) {
-    if (args.length < 2) {
-      System.err.println("Usage: LoadWikipediaArticles <master> <file>")
+    if (args.length < 3) {
+      System.err.println("Usage: LoadWikipediaArticles <articles> <categories> <art->cat edges>")
       System.exit(1)
     }
 
@@ -35,16 +35,19 @@ object LoadWikipediaArticles extends Logging {
     val sparkconf = new SparkConf()
     sparkconf.set("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
     sparkconf.set("spark.kryo.registrator", "edu.nd.nina.data.drivers.WikiRegistrator")
-    sparkconf.setMaster("local[1]").setAppName("LoadWikipediaArticles")
+      //.setMaster("spark://dsg1.virtual.crc.nd.edu:7077")
+      //.setMaster("local[2]")
+      //.setAppName("t")
+      //.setJars(Array("./target/spark-nina-0.0.1-SNAPSHOT.jar"))
 
     val sc = new SparkContext(sparkconf)
 
-    val (ty,vid) = GenerateWikiGraph.generategraph(1800, 400, 1, sc)
+    val (ty, vid) = GenerateWikiGraph.generategraph(args(0).toInt, args(1).toInt, args(2).toInt, sc)
 
     val rt = ty.vertices.collect
     val rt2 = ty.edges.collect
     println("Vertices name followed by namespace")
-   
+
     println("Edges Sources and destitnation ids")
 
     println(rt2.length)

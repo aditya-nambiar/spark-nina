@@ -39,26 +39,20 @@ object LoadWikipediaArticles extends Logging {
 
     val sc = new SparkContext(sparkconf)
 
-    val ty = GenerateWikiGraph.generategraph(1800, 400, 1, sc)
+    val (ty,vid) = GenerateWikiGraph.generategraph(1800, 400, 1, sc)
 
     val rt = ty.vertices.collect
     val rt2 = ty.edges.collect
     println("Vertices name followed by namespace")
-    for (x <- rt) {
-      println(x._2.title + " " + x._2.ns)
-    }
+   
     println("Edges Sources and destitnation ids")
-    for (x <- rt2) {
-
-      println(x.srcId + " " + x.dstId)
-    }
 
     println(rt2.length)
 
     val rvid = 18L
     val temp = ty.mapTriplets(x => if (x.srcAttr.ns == 0 && x.dstAttr.ns == 0) -1.0 else 1.0)
 
-    ComputeCategoryDistance.compute(temp)
+    ComputeCategoryDistance.compute(temp, vid)
 
     sc.stop
 

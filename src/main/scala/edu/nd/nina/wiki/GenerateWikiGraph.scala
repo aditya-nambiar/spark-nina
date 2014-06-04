@@ -24,7 +24,7 @@ object GenerateWikiGraph {
 
     val sc = new SparkContext(args(0), "LoadWikipediaArticles", sparkconf)
 
-    val ty = generategraph(1800, 200, 3, sc)
+    val (ty,vid) = generategraph(1800, 200, 3, sc)
 
     val rt = ty.vertices.collect
     val rt2 = ty.edges.collect
@@ -44,7 +44,7 @@ object GenerateWikiGraph {
 
   }
 
-  def generategraph(num_art: Int, num_cat: Int, branch: Int, sc: SparkContext): Graph[WikiVertex, Double] = {
+  def generategraph(num_art: Int, num_cat: Int, branch: Int, sc: SparkContext): (Graph[WikiVertex, Double], VertexId) = {
 
 
     val art1: Graph[WikiVertex,Double] =
@@ -116,7 +116,7 @@ object GenerateWikiGraph {
     println(categ.edges.partitions.length)
     println(categ.vertices.partitions.length)
 
-    categ
+    (categ, art1.vertices.first._1)
 
   }
 }

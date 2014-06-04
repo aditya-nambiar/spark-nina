@@ -7,15 +7,16 @@ import org.apache.spark.Logging
 import scala.collection.mutable.ArrayBuffer
 import scala.collection.immutable.List
 import scala.collection.mutable.Set
+import edu.nd.nina.test.ApproxDiameter
 object ComputeCategoryDistance extends Logging {
-//  var fin_art1: collection.mutable.Set[VertexId] = Set.empty
-//  var fin_art2: collection.mutable.Set[VertexId] = Set.empty
-//  var use2: Boolean = false
-//  var clean_flag = true
-//  var msg_flow: Int = 0
-//  var killed: Int = 0
+  //  var fin_art1: collection.mutable.Set[VertexId] = Set.empty
+  //  var fin_art2: collection.mutable.Set[VertexId] = Set.empty
+  //  var use2: Boolean = false
+  //  var clean_flag = true
+  //  var msg_flow: Int = 0
+  //  var killed: Int = 0
 
-  def compute(g: Graph[WikiVertex, Double]): Graph[WikiVertex, Double] = {
+  def compute(g: Graph[WikiVertex, Double], rvid: VertexId): Graph[WikiVertex, Double] = {
     println("yo " + g.vertices.count)
     logWarning("Graph has %d vertex partitions, %d edge partitions".format(g.vertices.partitions.length, g.edges.partitions.length))
     logWarning(s"DIRTY graph has ${g.triplets.count()} EDGES, ${g.vertices.count()} VERTICES")
@@ -33,8 +34,8 @@ object ComputeCategoryDistance extends Logging {
     // for( (x,y) <- rt ){println(y.ns)}
     //  val tp4=cleanG.edges.collect
     // for(x <- tp4){println(x.srcId+ " -> "+ x.dstId+ " Weight " + x.attr)  }
-    //   val (rvid, rvd) = ApproxDiameter.pickRandomVertex[String,Double](cleanG)
-    val rvid = cleanG.vertices.first._1
+
+
     println("starting vertex id " + rvid)
     val temp = cleanG.mapTriplets(x => if (x.srcAttr.ns == 0 && x.dstAttr.ns == 0) -1.0 else 1.0)
 
@@ -49,26 +50,26 @@ object ComputeCategoryDistance extends Logging {
 
     def vertexProgram(src: VertexId, oldDist: WikiVertex, recmsgs: List[Msg]): WikiVertex =
       {
-//        if (clean_flag == true) { //first VP after SM
-//          if (use2 == false) { //fin_art2 was used earlier use it
-//            fin_art1.clear() //and store in fin_art1
-//
-//          } else {
-//            fin_art2.clear()
-//          }
-//          use2 = !use2
-//          clean_flag = false
-//          println("Messages in flow :" + msg_flow)
-//          println("Killed " + killed)
-//          msg_flow = 0
-//        }
+        //        if (clean_flag == true) { //first VP after SM
+        //          if (use2 == false) { //fin_art2 was used earlier use it
+        //            fin_art1.clear() //and store in fin_art1
+        //
+        //          } else {
+        //            fin_art2.clear()
+        //          }
+        //          use2 = !use2
+        //          clean_flag = false
+        //          println("Messages in flow :" + msg_flow)
+        //          println("Killed " + killed)
+        //          msg_flow = 0
+        //        }
         //println("Executing on vertex")
         if (oldDist.dist != Double.PositiveInfinity && oldDist.dist != 0) {
-        /*  if (use2 == true)
+          /*  if (use2 == true)
             fin_art1 += src
           else
             fin_art2 += src*/
-//          killed = killed + 1
+          //          killed = killed + 1
           return new WikiVertex(oldDist.dist, oldDist.ns, oldDist.title, oldDist.neighbours, true)
         }
         if (oldDist.dist == 0) {
@@ -76,12 +77,12 @@ object ComputeCategoryDistance extends Logging {
           if (oldDist.start == false)
             return new WikiVertex(oldDist.dist, oldDist.ns, oldDist.title, oldDist.neighbours, false, true)
           else {
-        /*    if (use2 == true)
+            /*    if (use2 == true)
               fin_art1 += src
             else
               fin_art2 += src*/
 
-//            killed = killed + 1
+            //            killed = killed + 1
             return new WikiVertex(oldDist.dist, oldDist.ns, oldDist.title, oldDist.neighbours, true, true)
           }
 
@@ -106,7 +107,7 @@ object ComputeCategoryDistance extends Logging {
 
     def sendMessage(edge: EdgeTriplet[WikiVertex, Double]): Iterator[(VertexId, List[Msg])] =
       {
-//        clean_flag = true
+        //        clean_flag = true
         if (edge.srcAttr.ns == 0 && edge.dstAttr.ns == 14) { // Article to Category
           if (edge.srcAttr.isDead == true) {
             Iterator.empty
@@ -120,7 +121,7 @@ object ComputeCategoryDistance extends Logging {
                 var tp = new Msg(n, edge.srcAttr.dist)
                 i = tp :: i
               }
-              var tp = new Msg(edge.srcId, edge.srcAttr.dist,4)
+              var tp = new Msg(edge.srcId, edge.srcAttr.dist, 4)
               i = tp :: i
 
               Iterator((edge.dstId, i))
@@ -130,7 +131,7 @@ object ComputeCategoryDistance extends Logging {
         } else if (edge.srcAttr.ns == 14 && edge.dstAttr.ns == 14) { // Category to Category
           if (edge.srcAttr.col_msg.isEmpty) {
             Iterator.empty
-          } else {            
+          } else {
             Iterator((edge.dstId, edge.srcAttr.col_msg))
           }
 
@@ -173,9 +174,10 @@ object ComputeCategoryDistance extends Logging {
 
     var summed = 1.0
     val tp1 = sssp.vertices.collect
-    for ((x, y) <- tp1) { 
-      if(x > 0)
-      println(y.title + " " + y.dist) }
+    for ((x, y) <- tp1) {
+      if (x > 0)
+        println(y.title + " " + y.dist)
+    }
     // var summed = sssp.vertices.map((a) => a._2.dist).reduce(math.max(_, _))
 
     (sssp, summed)

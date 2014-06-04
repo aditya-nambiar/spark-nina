@@ -18,6 +18,9 @@
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<scala.version>2.10.4</scala.version>
 		<scala.binary.version>2.10</scala.binary.version>
+
+		<PermGen>64m</PermGen>
+		<MaxPermGen>512m</MaxPermGen>
 	</properties>
 
 	<dependencies>

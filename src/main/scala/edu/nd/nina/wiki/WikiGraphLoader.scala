@@ -112,6 +112,11 @@ object WikiGraphLoader extends Logging {
   }
 
   def vertexParser(vid: VertexId, arLine: Array[String]): Page = {
-    new Page(arLine(0).toInt, arLine(1), arLine(2).toInt, arLine(3).toLong, arLine(4).toInt, arLine(5).toInt, arLine(6).toDouble, arLine(7).toLong, arLine(8).toInt, arLine(9).toInt)
+    if (arLine.length == 9) {
+      new Page(arLine(0).toInt, arLine(1), arLine(2).toLong, arLine(3).toInt, arLine(4).toInt, arLine(5).toDouble, arLine(6).toLong, arLine(7).toInt, arLine(8).toInt)
+    } else {
+      logError("Error: Page tuple not correct format" + arLine.toString())
+      null
+    }
   }
 }

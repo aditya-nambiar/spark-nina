@@ -17,4 +17,5 @@ class WikiVertex(a: Double, b: Int, c: String, d: Array[VertexId], e: Boolean, f
   val isDead = e
   val start: Boolean = f
 
+  
 }

@@ -17,34 +17,16 @@ object ComputeCategoryDistance extends Logging {
   //  var msg_flow: Int = 0
   //  var killed: Int = 0
 
-  def compute(g: Graph[WikiVertex, Double], rvid: VertexId): Graph[WikiVertex, Double] = {
-    println("yo " + g.vertices.count)
-    logWarning("Graph has %d vertex partitions, %d edge partitions".format(g.vertices.partitions.length, g.edges.partitions.length))
-    logWarning(s"DIRTY graph has ${g.triplets.count()} EDGES, ${g.vertices.count()} VERTICES")
-
-    // TODO: try reindexing
-    val cleanG = g.subgraph(x => true,
-      (vid, vd) => vd != null).partitionBy(PartitionStrategy.EdgePartition2D).cache()
-    cleanG.vertices.setName("cleanG vertices")
-    cleanG.edges.setName("cleanG edges")
-
-    logWarning(s"ORIGINAL graph has ${cleanG.triplets.count()} EDGES, ${cleanG.vertices.count()} VERTICES")
-    logWarning(s"CLEAN graph has ${cleanG.triplets.count()} EDGES, ${cleanG.vertices.count()} VERTICES")
-    println("CLean Graph")
-    // val rt= cleanG.vertices.collect
-    // for( (x,y) <- rt ){println(y.ns)}
-    //  val tp4=cleanG.edges.collect
-    // for(x <- tp4){println(x.srcId+ " -> "+ x.dstId+ " Weight " + x.attr)  }
+  def compute(g: Graph[WikiVertex, Int], rvid: VertexId): Graph[WikiVertex, Int] = {
 
     println("starting vertex id " + rvid)
-    val temp = cleanG.mapTriplets(x => if (x.srcAttr.ns == 0 && x.dstAttr.ns == 0) -1.0 else 1.0)
 
-    val (tp1, tp2) = sssp(temp, rvid)
+    val (tp1, tp2) = sssp(g, rvid)
 
-    temp
+    tp1
   }
 
-  def sssp(g: Graph[WikiVertex, Double], src: VertexId): (Graph[WikiVertex, Double], Double) = {
+  def sssp(g: Graph[WikiVertex, Int], src: VertexId): (Graph[WikiVertex, Int], Double) = {
 
     var init = g.mapVertices((id, x) => if (id == src) { new WikiVertex(0, x.ns, x.title, x.neighbours) } else { new WikiVertex(Double.PositiveInfinity, x.ns, x.title, x.neighbours) })
 
@@ -82,7 +64,7 @@ object ComputeCategoryDistance extends Logging {
 
       }
 
-    def sendMessage(edge: EdgeTriplet[WikiVertex, Double]): Iterator[(VertexId, List[Msg])] =
+    def sendMessage(edge: EdgeTriplet[WikiVertex, Int]): Iterator[(VertexId, List[Msg])] =
       {
 
         if (edge.srcAttr.ns == 0 && edge.dstAttr.ns == 14) { // Article to Category
@@ -139,7 +121,7 @@ object ComputeCategoryDistance extends Logging {
     // The initial message received by all vertices in PageRank
 
     val initialMessage = List[Msg]()
-    val nmsg = new Msg(1L, Double.PositiveInfinity)
+    val nmsg = new Msg(1L, Int.MaxValue)
     val initMsg = nmsg :: initialMessage
 
     val sssp = MyPregel(init, initMsg, Int.MaxValue, EdgeDirection.Out)(

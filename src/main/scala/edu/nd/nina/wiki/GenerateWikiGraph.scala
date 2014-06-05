@@ -50,7 +50,12 @@ object GenerateWikiGraph {
       GraphGenerators.rmatGraph(sc, num_art, num_art * 5).mapVertices((id, _) => new WikiVertex(0, 0, id.toString, Array.empty[VertexId])).mapEdges(x => x.attr.toDouble)
 
     val nbrs = art1.mapReduceTriplets[Array[VertexId]](
-      mapFunc = et => Iterator((et.srcId, Array(et.dstId))),
+      mapFunc = et => 
+        if(et.srcId > 1){
+        Iterator((et.srcId, Array(et.dstId)))
+        }else{
+          Iterator.empty
+        },
       reduceFunc = _ ++ _)
 
     val cat: Graph[Double, Int] =

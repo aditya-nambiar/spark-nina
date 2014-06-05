@@ -104,7 +104,7 @@ object WikiArticle {
 
   // Hash of the canonical article name. Used for vertex ID.
   // TODO this should be a 64bit hash
-  private def titleHash(title: String): VertexId = { math.abs(WikiArticle.myHashcode(canonicalize(title))) }
+  def titleHash(title: String): VertexId = { math.abs(WikiArticle.myHashcode(canonicalize(title))) }
 
   private def myHashcode(s: String): Long = {
     var h: Long = 1125899906842597L // prime

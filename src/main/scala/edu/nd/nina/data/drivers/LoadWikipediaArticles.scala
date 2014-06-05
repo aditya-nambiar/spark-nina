@@ -18,7 +18,7 @@ import org.apache.spark.graphx.util.GraphGenerators
 import scala.util.Random
 import scala.collection.mutable.ArrayBuffer
 import edu.nd.nina.wiki.WikiVertex
-import edu.nd.nina.wiki.WikiArticle
+import edu.nd.nina.wiki._
 import edu.nd.nina.wiki.GenerateWikiGraph
 import edu.nd.nina.wiki.ComputeCategoryDistance
 
@@ -36,13 +36,15 @@ object LoadWikipediaArticles extends Logging {
     sparkconf.set("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
     sparkconf.set("spark.kryo.registrator", "edu.nd.nina.data.drivers.WikiRegistrator")
       //.setMaster("spark://dsg1.virtual.crc.nd.edu:7077")
-      //.setMaster("local[2]")
-      //.setAppName("t")
+      .setMaster("local[2]")
+      .setAppName("t")
       //.setJars(Array("./target/spark-nina-0.0.1-SNAPSHOT.jar"))
 
     val sc = new SparkContext(sparkconf)
 
-    val (ty, vid) = GenerateWikiGraph.generategraph(args(0).toInt, args(1).toInt, args(2).toInt, sc)
+    //val (ty, vid) = //GenerateWikiGraph.generategraph(args(0).toInt, args(1).toInt, args(2).toInt, sc)
+    val ty = LoadWikipedia.loadWikipedia(sc, "./data/enwiki_sample.xml", 4)
+    val vid = WikiArticle.titleHash("A")
 
     val rt = ty.vertices.collect
     val rt2 = ty.edges.collect

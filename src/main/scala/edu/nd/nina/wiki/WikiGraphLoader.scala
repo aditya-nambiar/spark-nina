@@ -112,6 +112,6 @@ object WikiGraphLoader extends Logging {
   }
 
   def vertexParser(vid: VertexId, arLine: Array[String]): Page = {
-    new Page(arLine(0).toInt, arLine(1), arLine(2).toInt, arLine(3).toLong, arLine(4).toBoolean, arLine(5).toBoolean, arLine(6).toDouble, arLine(7).toLong, arLine(8).toInt, arLine(9).toInt)
+    new Page(arLine(0).toInt, arLine(1), arLine(2).toInt, arLine(3).toLong, arLine(4).toInt, arLine(5).toInt, arLine(6).toDouble, arLine(7).toLong, arLine(8).toInt, arLine(9).toInt)
   }
 }

@@ -34,9 +34,23 @@ object LoadWikipedia extends Logging {
     logWarning(s"wikiRDD counted. Found ${wikiRDD.count} relevant articles in ${wikiRDD.partitions.size} partitions")
 
     val vertices: RDD[(VertexId, WikiVertex)] = wikiRDD.map { art => (art.vertexID, art.toWikivertex) }
+     val edges: RDD[Edge[Double]] = wikiRDD.flatMap { art => art.edges }
+     
+    val gtemp = Graph(vertices,edges)
+    val nbrs = gtemp.mapReduceTriplets[Array[VertexId]](
+      mapFunc = et =>   if(et.dstAttr.ns == 0){
+       Iterator((et.srcId, Array(et.dstId)))
+       }else{
+         Iterator.empty
+       } ,
+      reduceFunc = _ ++ _)
+     val art2 = gtemp.vertices.leftZipJoin(nbrs) { (vid, vdata, nbrsOpt) =>
+      vdata.neighbours = nbrsOpt.getOrElse(Array.empty[VertexId])
+      vdata
+    }
 
-    val edges: RDD[Edge[Double]] = wikiRDD.flatMap { art => art.edges }
+   
 
-    (vertices, edges)
+    (art2, edges)
   }
 }

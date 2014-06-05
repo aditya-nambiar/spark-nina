@@ -45,7 +45,8 @@ object LoadWikipediaArticles extends Logging {
     //val (ty, vid) = //GenerateWikiGraph.generategraph(args(0).toInt, args(1).toInt, args(2).toInt, sc)
     val ty = LoadWikipedia.loadWikipedia(sc, "./data/enwiki_sample.xml", 4)
     val vid = WikiArticle.titleHash("A")
-
+    val t1= ty.edges.collect
+    for(x <- t1){println(x.srcId+ " " +x.dstId+ " " +x.attr)}
     val rt = ty.vertices.collect
     val rt2 = ty.edges.collect
     println("Vertices name followed by namespace")

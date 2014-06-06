@@ -62,9 +62,7 @@ object WikiGraphLoader extends Logging {
         catToArtEdges += Edge(x.dstId, x.srcId, 1)
       })
 
-      val catToArt = sc.parallelize(catToArtEdges, minEdgePartitions).setName("catToArt")
-
-      GraphLoader.edgeListFile(sc, artpath, canonicalOrientation, minEdgePartitions).edges
+      val catToArt = sc.parallelize(catToArtEdges, minEdgePartitions).setName("catToArt")      
 
       val wikigraph: Graph[Page, Int] = Graph(
         Graph(

@@ -46,23 +46,44 @@ object WikiGraphLoader extends Logging {
     minVertexPartitions: Int = 1,
     minEdgePartitions: Int = 1): Graph[WikiVertex, Int] =
     {
-      val pages: RDD[(VertexId, Page)] = loadPage[Page](sc, pagepath, minVertexPartitions)
+      val pages: RDD[(VertexId, Page)] = loadPage[Page](sc, pagepath, minVertexPartitions).setName("pages")
       val catGraph: Graph[Int, Int] = GraphLoader.edgeListFile(sc, catpath, canonicalOrientation, minEdgePartitions)
+      
+      catGraph.vertices.setName("catGraph")
+      catGraph.edges.setName("catGraph")
 
       val catPageGraph: Graph[Page, Int] = Graph(pages, catGraph.edges)
+      
+      catGraph.edges.setName("catPageGraph")
 
       var catToArtEdges: ArrayBuffer[Edge[Int]] = ArrayBuffer.empty
-      catPageGraph.triplets.foreach(x => if (x.srcAttr.namespace == 0 && x.dstAttr.namespace == 14) {
+      catPageGraph.triplets.foreach(x => if (x.srcAttr != null && x.dstAttr != null && x.srcAttr.namespace == 0 && x.dstAttr.namespace == 14) {
         catToArtEdges += Edge(x.dstId, x.srcId, 1)
       })
 
-      val catToArtEdgeRDD = sc.parallelize(catToArtEdges, minEdgePartitions)
+      val catToArt = sc.parallelize(catToArtEdges, minEdgePartitions).setName("catToArt")
 
       val artGraph: Graph[Int, Int] = GraphLoader.edgeListFile(sc, artpath, canonicalOrientation, minEdgePartitions)
-      val edges = catGraph.edges.union(artGraph.edges).union(catToArtEdgeRDD)
-      val wikigraph: Graph[Page, Int] = Graph(pages, edges)
       
-      storeOutgoingNbrsInVertex(wikigraph).cache
+      artGraph.vertices.setName("artGraph")
+      artGraph.edges.setName("artGraph")
+      
+      val wikiedges = catGraph.edges.union(artGraph.edges).union(catToArt)
+      
+      wikiedges.setName("edges")
+      
+      val wikigraph: Graph[Page, Int] = Graph(catPageGraph.vertices, wikiedges)
+      
+      wikigraph.vertices.setName("wikigraph")
+      wikigraph.edges.setName("wikigraph")
+      
+      val cleanwikigraph = wikigraph.subgraph(x => true,
+      (vid, vd) => vd != null).partitionBy(PartitionStrategy.EdgePartition2D).cache()
+      
+      cleanwikigraph.vertices.setName("cleanWikiGraph")
+      cleanwikigraph.edges.setName("cleanWikiGraph")
+      
+      storeOutgoingNbrsInVertex(cleanwikigraph).cache
     }
 
   def storeOutgoingNbrsInVertex(wikigraph: Graph[Page, Int]): Graph[WikiVertex, Int] = {

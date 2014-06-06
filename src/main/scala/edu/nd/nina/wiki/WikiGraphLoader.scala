@@ -54,6 +54,8 @@ object WikiGraphLoader extends Logging {
 
       val catPageGraph: Graph[Page, Int] = Graph(pages, catGraph.edges)
       
+      pages.unpersist(blocking = false)
+      
       catGraph.edges.setName("catPageGraph")
 
       var catToArtEdges: ArrayBuffer[Edge[Int]] = ArrayBuffer.empty
@@ -69,6 +71,12 @@ object WikiGraphLoader extends Logging {
       artGraph.edges.setName("artGraph")
       
       val wikiedges = catGraph.edges.union(artGraph.edges).union(catToArt)
+      
+      catGraph.edges.unpersist(blocking=false)
+      catGraph.unpersistVertices(blocking=false)
+      catToArt.unpersist(blocking=false)
+      artGraph.edges.unpersist(blocking=false)
+      artGraph.unpersistVertices(blocking=false)
       
       wikiedges.setName("edges")
       

@@ -58,7 +58,7 @@ object LoadWikipediaArticles extends Logging {
     val rvid = 18L
     val temp = ty.mapTriplets(x => if (x.srcAttr.ns == 0 && x.dstAttr.ns == 0) -1.0 else 1.0)
 
-    ComputeCategoryDistance.compute(temp, vid)
+    //ComputeCategoryDistance.compute(temp, vid)
 
     sc.stop
 

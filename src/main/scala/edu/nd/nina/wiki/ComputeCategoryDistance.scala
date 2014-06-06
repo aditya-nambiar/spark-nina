@@ -18,30 +18,12 @@ object ComputeCategoryDistance extends Logging {
   //  var killed: Int = 0
 
   def compute(g: Graph[WikiVertex, Double], rvid: VertexId): Graph[WikiVertex, Double] = {
-    println("yo " + g.vertices.count)
-    logWarning("Graph has %d vertex partitions, %d edge partitions".format(g.vertices.partitions.length, g.edges.partitions.length))
-    logWarning(s"DIRTY graph has ${g.triplets.count()} EDGES, ${g.vertices.count()} VERTICES")
-
-    // TODO: try reindexing
-    val cleanG = g.subgraph(x => true,
-      (vid, vd) => vd != null).partitionBy(PartitionStrategy.EdgePartition2D).cache()
-    cleanG.vertices.setName("cleanG vertices")
-    cleanG.edges.setName("cleanG edges")
-
-    logWarning(s"ORIGINAL graph has ${cleanG.triplets.count()} EDGES, ${cleanG.vertices.count()} VERTICES")
-    logWarning(s"CLEAN graph has ${cleanG.triplets.count()} EDGES, ${cleanG.vertices.count()} VERTICES")
-    println("CLean Graph")
-    // val rt= cleanG.vertices.collect
-    // for( (x,y) <- rt ){println(y.ns)}
-    //  val tp4=cleanG.edges.collect
-    // for(x <- tp4){println(x.srcId+ " -> "+ x.dstId+ " Weight " + x.attr)  }
 
     println("starting vertex id " + rvid)
-    val temp = cleanG.mapTriplets(x => if (x.srcAttr.ns == 0 && x.dstAttr.ns == 0) -1.0 else 1.0)
 
-    val (tp1, tp2) = sssp(temp, rvid)
+    val (tp1, tp2) = sssp(g, rvid)
 
-    temp
+    tp1
   }
 
   def sssp(g: Graph[WikiVertex, Double], src: VertexId): (Graph[WikiVertex, Double], Double) = {
@@ -86,6 +68,11 @@ object ComputeCategoryDistance extends Logging {
       {
 
         if (edge.srcAttr.ns == 0 && edge.dstAttr.ns == 14) { // Article to Category
+
+          if (edge.srcId == 12 || edge.dstId == 12) {
+            println("12s")
+          }
+
           if (edge.srcAttr.isDead == true) {
             Iterator.empty
           } else {
@@ -164,11 +151,11 @@ object ComputeCategoryDistance extends Logging {
 
   }
 }
-class Msg(a: VertexId, b: Double, c: Int) extends Serializable {
+class Msg(a: VertexId, b: Double, c: Double) extends Serializable {
 
   def this(a: VertexId, b: Double) = this(a, b, 0)
   var to = a
   var dist = b
-  var d_ac: Int = c
+  var d_ac: Double = c
 
 }

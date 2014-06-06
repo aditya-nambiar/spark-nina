@@ -54,9 +54,8 @@ object WikiGraphLoader extends Logging {
 
       val catPageGraph: Graph[Page, Int] = Graph(pages, catGraph.edges)
       
-      pages.unpersist(blocking = false)
       
-      catGraph.edges.setName("catPageGraph")
+      catPageGraph.edges.setName("catPageGraph")
 
       var catToArtEdges: ArrayBuffer[Edge[Int]] = ArrayBuffer.empty
       catPageGraph.triplets.foreach(x => if (x.srcAttr != null && x.dstAttr != null && x.srcAttr.namespace == 0 && x.dstAttr.namespace == 14) {
@@ -65,28 +64,20 @@ object WikiGraphLoader extends Logging {
 
       val catToArt = sc.parallelize(catToArtEdges, minEdgePartitions).setName("catToArt")
 
-      val artGraph: Graph[Int, Int] = GraphLoader.edgeListFile(sc, artpath, canonicalOrientation, minEdgePartitions)
-      
-      artGraph.vertices.setName("artGraph")
-      artGraph.edges.setName("artGraph")
-      
-      val wikiedges = catGraph.edges.union(artGraph.edges).union(catToArt)
-      
-      catGraph.edges.unpersist(blocking=false)
-      catGraph.unpersistVertices(blocking=false)
-      catToArt.unpersist(blocking=false)
-      artGraph.edges.unpersist(blocking=false)
-      artGraph.unpersistVertices(blocking=false)
-      
-      wikiedges.setName("edges")
-      
-      val wikigraph: Graph[Page, Int] = Graph(catPageGraph.vertices, wikiedges)
-      
+     
+      val wikigraph: Graph[Page, Int] = Graph(
+          Graph(
+              pages, catGraph.edges).vertices, 
+              catGraph.edges.union(GraphLoader.edgeListFile(sc, artpath, canonicalOrientation, minEdgePartitions).edges).union(catToArt)
+              ).subgraph(x => true, (vid, vd) => vd != null).partitionBy(PartitionStrategy.EdgePartition2D).cache()
+
+      catGraph.unpersistVertices(false)
+      catGraph.edges.unpersist(false)
+              
       wikigraph.vertices.setName("wikigraph")
       wikigraph.edges.setName("wikigraph")
       
-      val cleanwikigraph = wikigraph.subgraph(x => true,
-      (vid, vd) => vd != null).partitionBy(PartitionStrategy.EdgePartition2D).cache()
+      val cleanwikigraph = wikigraph
       
       cleanwikigraph.vertices.setName("cleanWikiGraph")
       cleanwikigraph.edges.setName("cleanWikiGraph")
@@ -135,7 +126,7 @@ object WikiGraphLoader extends Logging {
         println("returning empty")
         Iterator.empty
       }
-    }.cache()
+    }
 
     vertices
   }

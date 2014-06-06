@@ -10,6 +10,7 @@ import org.apache.spark.graphx._
 import org.apache.spark.graphx.util.collection.GraphXPrimitiveKeyOpenHashMap
 import scala.collection.mutable.ArrayBuffer
 import org.apache.spark.rdd.RDD
+import org.apache.spark.graphx.EdgeRDD
 
 object WikiGraphLoader extends Logging {
 
@@ -48,13 +49,12 @@ object WikiGraphLoader extends Logging {
     {
       val pages: RDD[(VertexId, Page)] = loadPage[Page](sc, pagepath, minVertexPartitions).setName("pages")
       val catGraph: Graph[Int, Int] = GraphLoader.edgeListFile(sc, catpath, canonicalOrientation, minEdgePartitions)
-      
+
       catGraph.vertices.setName("catGraph")
       catGraph.edges.setName("catGraph")
 
       val catPageGraph: Graph[Page, Int] = Graph(pages, catGraph.edges)
-      
-      
+
       catPageGraph.edges.setName("catPageGraph")
 
       var catToArtEdges: ArrayBuffer[Edge[Int]] = ArrayBuffer.empty
@@ -64,31 +64,27 @@ object WikiGraphLoader extends Logging {
 
       val catToArt = sc.parallelize(catToArtEdges, minEdgePartitions).setName("catToArt")
 
-     
+      GraphLoader.edgeListFile(sc, artpath, canonicalOrientation, minEdgePartitions).edges
+
       val wikigraph: Graph[Page, Int] = Graph(
-          Graph(
-              pages, catGraph.edges).vertices, 
-              catGraph.edges.union(GraphLoader.edgeListFile(sc, artpath, canonicalOrientation, minEdgePartitions).edges).union(catToArt)
-              ).subgraph(x => true, (vid, vd) => vd != null).partitionBy(PartitionStrategy.EdgePartition2D).cache()
+        Graph(
+          pages, catGraph.edges).vertices,
+        catGraph.edges.union(loadEdges(sc, artpath)).union(catToArt)).subgraph(x => true, (vid, vd) => vd != null).partitionBy(PartitionStrategy.EdgePartition2D)
 
       catGraph.unpersistVertices(false)
       catGraph.edges.unpersist(false)
-              
+
       wikigraph.vertices.setName("wikigraph")
       wikigraph.edges.setName("wikigraph")
-      
-      val cleanwikigraph = wikigraph
-      
-      cleanwikigraph.vertices.setName("cleanWikiGraph")
-      cleanwikigraph.edges.setName("cleanWikiGraph")
-      
-      storeOutgoingNbrsInVertex(cleanwikigraph).cache
+
+
+      storeOutgoingNbrsInVertex(wikigraph).cache
     }
 
   def storeOutgoingNbrsInVertex(wikigraph: Graph[Page, Int]): Graph[WikiVertex, Int] = {
-    
+
     val wikifiedWikiGraph = wikigraph.mapVertices((vid, vd) => vd.toWikiVertex)
-    
+
     val nbrs = wikifiedWikiGraph.mapReduceTriplets[Array[VertexId]](
       mapFunc = et =>
         if (et.srcAttr.ns == 0) {
@@ -98,15 +94,13 @@ object WikiGraphLoader extends Logging {
         },
       reduceFunc = _ ++ _)
 
-      
-    
     val neighborfiedVertices = wikifiedWikiGraph.vertices.leftZipJoin(nbrs) { (vid, vdata, nbrsOpt) =>
       vdata.neighbours = nbrsOpt.getOrElse(Array.empty[VertexId])
       vdata
     }
 
     Graph(neighborfiedVertices, wikigraph.edges);
-    
+
   }
 
   def loadPage[VD: ClassManifest](
@@ -129,6 +123,27 @@ object WikiGraphLoader extends Logging {
     }
 
     vertices
+  }
+
+  def loadEdges[VD: ClassManifest](
+    sc: SparkContext,
+    path: String,
+    minEdgePartitions: Int = 1): RDD[Edge[Int]] = {
+
+    val edges = sc.textFile(path).flatMap { line =>
+      if (!line.isEmpty && line(0) != '#') {
+        val lineArray = line.split("\\s+")
+        val srcId = lineArray(0).trim().toInt
+        val dstId = lineArray(1).trim().toInt
+
+        Iterator(Edge(srcId, dstId, 1))
+      } else {
+        println("returning empty")
+        Iterator.empty
+      }
+    }
+
+    edges
   }
 
   def vertexParser(vid: VertexId, arLine: Array[String]): Page = {

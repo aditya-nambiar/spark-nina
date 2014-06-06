@@ -45,41 +45,77 @@ object WikiGraphLoader extends Logging {
     pagepath: String,
     canonicalOrientation: Boolean = false,
     minVertexPartitions: Int = 1,
-    minEdgePartitions: Int = 1): Graph[WikiVertex, Int] =
+    minEdgePartitions: Int = 1): Graph[WikiVertex, Double] =
     {
-      val pages: RDD[(VertexId, Page)] = loadPage[Page](sc, pagepath, minVertexPartitions).setName("pages")
-      val catGraph: Graph[Int, Int] = GraphLoader.edgeListFile(sc, catpath, canonicalOrientation, minEdgePartitions)
+      val pages: RDD[(VertexId, Page)] = loadPage[Page](sc, pagepath, minVertexPartitions).setName("Pages").cache
+      val pc = pages.count//<-executes
+      println("Pages: " + pc)
+      
+      val catEdges = loadEdges(sc, catpath).setName("Category Edges").cache
+      val cc = catEdges.count//<-executes
+      println("Category Edges" + cc)
 
-      catGraph.vertices.setName("catGraph")
-      catGraph.edges.setName("catGraph")
-
-      val catPageGraph: Graph[Page, Int] = Graph(pages, catGraph.edges)
-
-      catPageGraph.edges.setName("catPageGraph")
-
-      var catToArtEdges: ArrayBuffer[Edge[Int]] = ArrayBuffer.empty
-      catPageGraph.triplets.foreach(x => if (x.srcAttr != null && x.dstAttr != null && x.srcAttr.namespace == 0 && x.dstAttr.namespace == 14) {
-        catToArtEdges += Edge(x.dstId, x.srcId, 1)
-      })
-
-      val catToArt = sc.parallelize(catToArtEdges, minEdgePartitions).setName("catToArt")      
-
-      val wikigraph: Graph[Page, Int] = Graph(
-        Graph(
-          pages, catGraph.edges).vertices,
-        catGraph.edges.union(loadEdges(sc, artpath)).union(catToArt)).subgraph(x => true, (vid, vd) => vd != null).partitionBy(PartitionStrategy.EdgePartition2D)
-
-      catGraph.unpersistVertices(false)
-      catGraph.edges.unpersist(false)
-
-      wikigraph.vertices.setName("wikigraph")
-      wikigraph.edges.setName("wikigraph")
+      val catPageGraph: Graph[Page, Double] = Graph(pages, catEdges)
 
 
-      storeOutgoingNbrsInVertex(wikigraph).cache
+      val catToArtEdges = catPageGraph.triplets.flatMap[Edge[Double]](x => 
+         if (x.srcAttr != null && x.dstAttr != null && x.srcAttr.namespace == 0 && x.dstAttr.namespace == 14){
+        	 Iterator(Edge(x.dstId, x.srcId, 1))
+         }else{
+        	 Iterator.empty
+         }
+         )
+       
+      val ca = catToArtEdges.count//<-executes
+      println("Category To Article Edges" + ca)
+
+      val edges = loadEdges(sc, artpath).setName("Article Edges").cache
+      val ec = edges.count//<-executes
+      println("Artical Edges: " + ec) 
+      
+      
+      val edgeunion = catEdges.union(edges).union(catToArtEdges).setName("Unioned Edges RDD").cache
+      val eu = edgeunion.count//<-executes
+      println("Unioned Edges1: " + eu) 
+      
+      edges.unpersist(false)
+            
+      val wikigraph: Graph[Page, Double] = Graph(pages, edgeunion)
+      
+      wikigraph.vertices.setName("WikiGraph Vertices").cache
+      wikigraph.edges.setName("WikiGraph Edges").cache
+      val wvc = wikigraph.vertices.count//<-executes
+      val wec = wikigraph.edges.count//<-executes
+      println("WikiGraph Vertices: " + wvc)
+      println("WikiGraph Edges: " + wec)
+      
+      edgeunion.unpersist(false)
+        
+        
+      val cleanwikigraph = wikigraph.subgraph(x => true, (vid, vd) => vd != null)
+      
+      cleanwikigraph.vertices.setName("Clean WikiGraph Vertices").cache
+      cleanwikigraph.edges.setName("Clean WikiGraph Edges").cache
+      val cwvc = cleanwikigraph.vertices.count//<-executes
+      val cwec = cleanwikigraph.edges.count//<-executes
+      println("WikiGraph Vertices: " + cwvc)
+      println("WikiGraph Edges: " + cwec)
+      
+      wikigraph.unpersistVertices(false)
+      wikigraph.edges.unpersist(false)
+      
+
+
+      val wg = storeOutgoingNbrsInVertex(cleanwikigraph)
+      wg.vertices.count
+      
+      cleanwikigraph.unpersistVertices(false)
+      cleanwikigraph.edges.unpersist(false)
+      
+      wg
     }
 
-  def storeOutgoingNbrsInVertex(wikigraph: Graph[Page, Int]): Graph[WikiVertex, Int] = {
+  def storeOutgoingNbrsInVertex(wikigraph: Graph[Page, Double]): Graph[WikiVertex, Double] = {
 
     val wikifiedWikiGraph = wikigraph.mapVertices((vid, vd) => vd.toWikiVertex)
 
@@ -93,6 +129,9 @@ object WikiGraphLoader extends Logging {
       reduceFunc = _ ++ _)
 
     val neighborfiedVertices = wikifiedWikiGraph.vertices.leftZipJoin(nbrs) { (vid, vdata, nbrsOpt) =>
+      if(vid == 12){
+        println(12)
+      }
       vdata.neighbours = nbrsOpt.getOrElse(Array.empty[VertexId])
       vdata
     }
@@ -126,15 +165,16 @@ object WikiGraphLoader extends Logging {
   def loadEdges[VD: ClassManifest](
     sc: SparkContext,
     path: String,
-    minEdgePartitions: Int = 1): RDD[Edge[Int]] = {
+    minEdgePartitions: Int = 1): RDD[Edge[Double]] = {
 
-    val edges = sc.textFile(path).flatMap { line =>
+    
+    val edges = sc.textFile(path).flatMap { line =>      
       if (!line.isEmpty && line(0) != '#') {
         val lineArray = line.split("\\s+")
         val srcId = lineArray(0).trim().toInt
         val dstId = lineArray(1).trim().toInt
 
-        Iterator(Edge(srcId, dstId, 1))
+        Iterator(Edge(srcId, dstId, 1d))
       } else {
         println("returning empty")
         Iterator.empty
@@ -147,6 +187,8 @@ object WikiGraphLoader extends Logging {
   def vertexParser(vid: VertexId, arLine: Array[String]): Page = {
     if (arLine.length == 9) {
       new Page(arLine(0).toInt, arLine(1), arLine(2).toLong, arLine(3).toInt, arLine(4).toInt, arLine(5).toDouble, arLine(6).toLong, arLine(7).toInt, arLine(8).toInt)
+    }else if(arLine.length == 10){
+      new Page(arLine(0).toInt, arLine(1), arLine(3).toLong, arLine(4).toInt, arLine(5).toInt, arLine(6).toDouble, arLine(7).toLong, arLine(8).toInt, arLine(9).toInt)
     } else {
       logError("Error: Page tuple not correct format" + arLine.toString())
       null

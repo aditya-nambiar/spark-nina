@@ -1,6 +1,6 @@
 package edu.nd.nina.wiki
 
-class Page(_namespace: Int, _title: String, _counter: Long, _is_redirect: Int, _is_new: Int, _random: Double, _touched: Long, _latest: Int, _len: Int) {
+class Page(_namespace: Int, _title: String, _counter: Long, _is_redirect: Int, _is_new: Int, _random: Double, _touched: Long, _latest: Int, _len: Int) extends java.io.Serializable {
 
   val namespace: Int = _namespace
   val title: String = _title

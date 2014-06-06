@@ -17,7 +17,7 @@ object ComputeCategoryDistance extends Logging {
   //  var msg_flow: Int = 0
   //  var killed: Int = 0
 
-  def compute(g: Graph[WikiVertex, Int], rvid: VertexId): Graph[WikiVertex, Int] = {
+  def compute(g: Graph[WikiVertex, Double], rvid: VertexId): Graph[WikiVertex, Double] = {
 
     println("starting vertex id " + rvid)
 
@@ -26,7 +26,7 @@ object ComputeCategoryDistance extends Logging {
     tp1
   }
 
-  def sssp(g: Graph[WikiVertex, Int], src: VertexId): (Graph[WikiVertex, Int], Double) = {
+  def sssp(g: Graph[WikiVertex, Double], src: VertexId): (Graph[WikiVertex, Double], Double) = {
 
     var init = g.mapVertices((id, x) => if (id == src) { new WikiVertex(0, x.ns, x.title, x.neighbours) } else { new WikiVertex(Double.PositiveInfinity, x.ns, x.title, x.neighbours) })
 
@@ -64,10 +64,15 @@ object ComputeCategoryDistance extends Logging {
 
       }
 
-    def sendMessage(edge: EdgeTriplet[WikiVertex, Int]): Iterator[(VertexId, List[Msg])] =
+    def sendMessage(edge: EdgeTriplet[WikiVertex, Double]): Iterator[(VertexId, List[Msg])] =
       {
 
         if (edge.srcAttr.ns == 0 && edge.dstAttr.ns == 14) { // Article to Category
+
+          if (edge.srcId == 12 || edge.dstId == 12) {
+            println("12s")
+          }
+
           if (edge.srcAttr.isDead == true) {
             Iterator.empty
           } else {
@@ -121,7 +126,7 @@ object ComputeCategoryDistance extends Logging {
     // The initial message received by all vertices in PageRank
 
     val initialMessage = List[Msg]()
-    val nmsg = new Msg(1L, Int.MaxValue)
+    val nmsg = new Msg(1L, Double.PositiveInfinity)
     val initMsg = nmsg :: initialMessage
 
     val sssp = MyPregel(init, initMsg, Int.MaxValue, EdgeDirection.Out)(
@@ -146,11 +151,11 @@ object ComputeCategoryDistance extends Logging {
 
   }
 }
-class Msg(a: VertexId, b: Double, c: Int) extends Serializable {
+class Msg(a: VertexId, b: Double, c: Double) extends Serializable {
 
   def this(a: VertexId, b: Double) = this(a, b, 0)
   var to = a
   var dist = b
-  var d_ac: Int = c
+  var d_ac: Double = c
 
 }

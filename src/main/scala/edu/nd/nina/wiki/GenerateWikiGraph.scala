@@ -47,12 +47,12 @@ object GenerateWikiGraph {
   def generategraph(num_art: Int, num_cat: Int, branch: Int, sc: SparkContext): (Graph[WikiVertex, Double], VertexId) = {
 
     val art1: Graph[WikiVertex, Double] =
-      GraphGenerators.rmatGraph(sc, num_art, num_art * 5).mapVertices((id, _) => new WikiVertex(0, 0, id.toString, Array.empty[VertexId])).mapEdges(x => x.attr.toDouble)
+      GraphGenerators.rmatGraph(sc, num_art, num_art * 5).mapVertices((id, _) => new WikiVertex(0, 0, id.toString, List.empty[VertexId])).mapEdges(x => x.attr.toDouble)
 
-    val nbrs = art1.mapReduceTriplets[Array[VertexId]](
+    val nbrs = art1.mapReduceTriplets[List[VertexId]](
       mapFunc = et => 
         if(et.srcId > 1){
-        Iterator((et.srcId, Array(et.dstId)))
+        Iterator((et.srcId, List(et.dstId)))
         }else{
           Iterator.empty
         },
@@ -62,7 +62,7 @@ object GenerateWikiGraph {
       GraphGenerators.rmatGraph(sc, num_cat, num_cat * 2).mapVertices((id, _) => id.toDouble)
 
     val art2 = art1.vertices.leftZipJoin(nbrs) { (vid, vdata, nbrsOpt) =>
-      vdata.neighbours = nbrsOpt.getOrElse(Array.empty[VertexId])
+      vdata.neighbours = nbrsOpt.getOrElse(List.empty[VertexId])
       vdata
     }
 
@@ -72,7 +72,7 @@ object GenerateWikiGraph {
     val cattp = cat.vertices
     val cattp2 = cat.edges.filter(a => a.srcId != a.dstId)
 
-    val try1: RDD[(VertexId, WikiVertex)] = cattp.map(a => (-a._1, new WikiVertex(0, 14, (-a._1).toString, Array.empty[VertexId])))
+    val try1: RDD[(VertexId, WikiVertex)] = cattp.map(a => (-a._1, new WikiVertex(0, 14, (-a._1).toString, List.empty[VertexId])))
 
     val try2: RDD[Edge[Double]] = cattp2.map(a => Edge(-a.srcId, -a.dstId, a.attr.toDouble))
     val try3: RDD[(VertexId, WikiVertex)] = try1.union(art.vertices)

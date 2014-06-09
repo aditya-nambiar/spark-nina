@@ -70,7 +70,7 @@ object ComputeCategoryDistance extends Logging {
         if (edge.srcAttr.ns == 0 && edge.dstAttr.ns == 14) { // Article to Category
 
           if (edge.srcId == 12 || edge.dstId == 12) {
-            println("12s")
+            println("78054")
           }
 
           if (edge.srcAttr.isDead == true) {
@@ -157,5 +157,10 @@ class Msg(a: VertexId, b: Double, c: Double) extends Serializable {
   var to = a
   var dist = b
   var d_ac: Double = c
+  
+  override def toString(): String = {
+    val ret = to + ":" + dist + ":" + d_ac
+    ret
+  }
 
 }

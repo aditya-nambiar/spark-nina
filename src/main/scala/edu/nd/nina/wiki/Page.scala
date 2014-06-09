@@ -13,7 +13,7 @@ class Page(_namespace: Int, _title: String, _counter: Long, _is_redirect: Int, _
   val len: Int = _len
   
   def toWikiVertex():WikiVertex ={
-    new WikiVertex(0, namespace, title, Array.empty, false, false, List.empty);
+    new WikiVertex(0, namespace, title, List.empty, false, false, List.empty);
   }
 
 }

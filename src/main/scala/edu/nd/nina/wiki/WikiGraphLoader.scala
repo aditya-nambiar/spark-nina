@@ -1,3 +1,4 @@
+
 package edu.nd.nina.wiki
 
 import org.apache.spark.{ Logging, SparkContext }
@@ -11,6 +12,7 @@ import org.apache.spark.graphx.util.collection.GraphXPrimitiveKeyOpenHashMap
 import scala.collection.mutable.ArrayBuffer
 import org.apache.spark.rdd.RDD
 import org.apache.spark.graphx.EdgeRDD
+
 
 object WikiGraphLoader extends Logging {
 
@@ -52,8 +54,8 @@ object WikiGraphLoader extends Logging {
       println("Pages: " + pc)
       
       val catEdges = loadEdges(sc, catpath).setName("Category Edges").cache
-      val cc = catEdges.count//<-executes
-      println("Category Edges" + cc)
+      //val cc = catEdges.count//<-executes
+      //println("Category Edges" + cc)
 
       val catPageGraph: Graph[Page, Double] = Graph(pages, catEdges)
 
@@ -65,41 +67,58 @@ object WikiGraphLoader extends Logging {
         	 Iterator.empty
          }
          )
+         
+      catPageGraph.unpersistVertices(false);
+      catPageGraph.edges.unpersist(false);
        
-      val ca = catToArtEdges.count//<-executes
-      println("Category To Article Edges" + ca)
+    //  val ca = catToArtEdges.count//<-executes
+    //  println("Category To Article Edges" + ca)
 
       val edges = loadEdges(sc, artpath).setName("Article Edges").cache
-      val ec = edges.count//<-executes
-      println("Artical Edges: " + ec) 
+     // val ec = edges.count//<-executes
+     // println("Artical Edges: " + ec)
+      
+      val pageGraph = Graph(pages, edges).cache
+      val deg10 = pageGraph.inDegrees.filter(v => if(v._2>=1000) true else false)
+      val deg10graph = pageGraph.vertices.innerJoin(deg10)((vid, vd, other) => vd)
+      val filteredPageGraph = Graph(deg10graph, edges).cache
+                
+      
+      val cleanfilteredwikigraph = filteredPageGraph.subgraph(x => x.srcAttr != null && x.dstAttr != null, (vid, vd) => vd != null)
+      
+      //println(cleanfilteredwikigraph.edges.count)
       
       
-      val edgeunion = catEdges.union(edges).union(catToArtEdges).setName("Unioned Edges RDD").cache
-      val eu = edgeunion.count//<-executes
-      println("Unioned Edges1: " + eu) 
+      val edgeunion = catEdges.union(cleanfilteredwikigraph.edges).union(catToArtEdges).setName("Unioned Edges RDD").cache
+ //     val eu = edgeunion.count//<-executes
+ //     println("Unioned Edges1: " + eu) 
       
       edges.unpersist(false)
+      catToArtEdges.unpersist(false)
+      catEdges.unpersist(false)
             
       val wikigraph: Graph[Page, Double] = Graph(pages, edgeunion)
       
       wikigraph.vertices.setName("WikiGraph Vertices").cache
-      wikigraph.edges.setName("WikiGraph Edges").cache
-      val wvc = wikigraph.vertices.count//<-executes
-      val wec = wikigraph.edges.count//<-executes
-      println("WikiGraph Vertices: " + wvc)
-      println("WikiGraph Edges: " + wec)
+      wikigraph.edges.setName("WikiGraph Edges").cache     
+      
+   //   val wvc = wikigraph.vertices.count//<-executes
+   //   val wec = wikigraph.edges.count//<-executes
+    //  println("WikiGraph Vertices: " + wvc)
+   //   println("WikiGraph Edges: " + wec)
       
       edgeunion.unpersist(false)
+      pages.unpersist(false)
         
         
-      val cleanwikigraph = wikigraph.subgraph(x => true, (vid, vd) => vd != null)
+      val cleanwikigraph = wikigraph.subgraph(x => x.srcAttr != null && x.dstAttr != null, (vid, vd) => vd != null)
       
       cleanwikigraph.vertices.setName("Clean WikiGraph Vertices").cache
       cleanwikigraph.edges.setName("Clean WikiGraph Edges").cache
-      val cwvc = cleanwikigraph.vertices.count//<-executes
-      val cwec = cleanwikigraph.edges.count//<-executes
-      println("WikiGraph Vertices: " + cwvc)
-      println("WikiGraph Edges: " + cwec)
+      //val cwvc = cleanwikigraph.vertices.count//<-executes
+      //val cwec = cleanwikigraph.edges.count//<-executes
+      //println("WikiGraph Vertices: " + cwvc)
+      //println("WikiGraph Edges: " + cwec)
       
       wikigraph.unpersistVertices(false)
       wikigraph.edges.unpersist(false)
@@ -112,6 +131,16 @@ object WikiGraphLoader extends Logging {
       cleanwikigraph.unpersistVertices(false)
       cleanwikigraph.edges.unpersist(false)
       
+      println("------------------------------------")
+      
+      wg.vertices.saveAsTextFile("hdfs://dsg2.crc.nd.edu/data/enwiki/wikiDeg100vertices")
+      wg.edges.saveAsTextFile("hdfs://dsg2.crc.nd.edu/data/enwiki/wikiDeg100edges")
+      
+      wg.vertices.foreach(
+          f => if(f._1 == 780754 || f._1 == 12) 
+            println(f._2.neighbours.length) 
+          )
+      
       wg
     }
 
@@ -119,10 +148,10 @@ object WikiGraphLoader extends Logging {
 
     val wikifiedWikiGraph = wikigraph.mapVertices((vid, vd) => vd.toWikiVertex)
 
-    val nbrs = wikifiedWikiGraph.mapReduceTriplets[Array[VertexId]](
+    val nbrs = wikifiedWikiGraph.mapReduceTriplets[List[VertexId]](
       mapFunc = et =>
         if (et.srcAttr.ns == 0) {
-          Iterator((et.srcId, Array(et.dstId)))
+          Iterator((et.srcId, List(et.dstId)))
         } else {
           Iterator.empty
         },
@@ -132,7 +161,7 @@ object WikiGraphLoader extends Logging {
       if(vid == 12){
         println(12)
       }
-      vdata.neighbours = nbrsOpt.getOrElse(Array.empty[VertexId])
+      vdata.neighbours = nbrsOpt.getOrElse(List.empty[VertexId])
       vdata
     }
 

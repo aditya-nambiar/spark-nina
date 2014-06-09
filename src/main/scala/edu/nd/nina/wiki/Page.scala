@@ -1,3 +1,4 @@
+
 package edu.nd.nina.wiki
 
 class Page(_namespace: Int, _title: String, _counter: Long, _is_redirect: Int, _is_new: Int, _random: Double, _touched: Long, _latest: Int, _len: Int) extends java.io.Serializable {
@@ -13,7 +14,8 @@ class Page(_namespace: Int, _title: String, _counter: Long, _is_redirect: Int, _
   val len: Int = _len
   
   def toWikiVertex():WikiVertex ={
-    new WikiVertex(0, namespace, title, Array.empty, false, false, List.empty);
+    new WikiVertex(0, namespace, title, List.empty, false, false, List.empty);
   }
+
 
 }

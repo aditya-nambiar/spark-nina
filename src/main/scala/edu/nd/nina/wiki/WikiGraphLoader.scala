@@ -51,7 +51,7 @@ object WikiGraphLoader extends Logging {
       val pc = pages.count//<-executes
       println("Pages: " + pc)
       
-      val catEdges = loadEdges(sc, catpath).setName("Category Edges").cache
+      val catEdges = loadEdges(sc, catpath).setName("Category Edges").cache      
       //val cc = catEdges.count//<-executes
       //println("Category Edges" + cc)
 
@@ -59,7 +59,7 @@ object WikiGraphLoader extends Logging {
 
 
       val catToArtEdges = catPageGraph.triplets.flatMap[Edge[Double]](x => 
-         if (x.srcAttr != null && x.dstAttr != null && x.srcAttr.namespace == 0 && x.dstAttr.namespace == 14){
+         if (x.srcAttr != null && x.dstAttr != null && x.dstAttr.namespace == 14){
         	 Iterator(Edge(x.dstId, x.srcId, 1))
          }else{
         	 Iterator.empty

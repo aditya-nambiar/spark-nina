@@ -9,6 +9,7 @@ import scala.collection.immutable.List
 import scala.collection.mutable.Set
 import edu.nd.nina.test.ApproxDiameter
 import edu.nd.nina.test.MyPregel
+import org.apache.spark.Accumulator
 object ComputeCategoryDistance extends Logging {
   //  var fin_art1: collection.mutable.Set[VertexId] = Set.empty
   //  var fin_art2: collection.mutable.Set[VertexId] = Set.empty
@@ -18,7 +19,8 @@ object ComputeCategoryDistance extends Logging {
   //  var killed: Int = 0
 
   def compute(g: Graph[WikiVertex, Double], rvid: VertexId): Graph[WikiVertex, Double] = {
-
+    
+    
     println("starting vertex id " + rvid)
 
     val (tp1, tp2) = sssp(g, rvid)
@@ -69,9 +71,6 @@ object ComputeCategoryDistance extends Logging {
 
         if (edge.srcAttr.ns == 0 && edge.dstAttr.ns == 14) { // Article to Category
 
-          if (edge.srcId == 12 || edge.dstId == 12) {
-            println("78054")
-          }
 
           if (edge.srcAttr.isDead == true) {
             Iterator.empty

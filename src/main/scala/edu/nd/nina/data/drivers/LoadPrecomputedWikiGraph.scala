@@ -11,6 +11,7 @@ import edu.nd.nina.wiki.Page
 import edu.nd.nina.wiki.WikiVertex
 import edu.nd.nina.wiki.ComputeCategoryDistance
 import org.apache.spark.rdd.RDD
+import org.apache.spark.AccumulatorParam
 
 object LoadPrecomputedWikiGraph extends Logging {
 
@@ -28,6 +29,7 @@ object LoadPrecomputedWikiGraph extends Logging {
     .setJars(Array("./target/spark-nina-0.0.1-SNAPSHOT.jar"))
 
     val sc = new SparkContext(sparkconf)
+    
 
     val vertices: RDD[(VertexId, WikiVertex)] = loadPrecomputedVertices(sc, "hdfs://dsg2.crc.nd.edu/data/enwiki/wikiDeg100vertices/", 18).setName("Vertices").cache
     val edges: RDD[Edge[Double]] = loadPrecomputedEdges(sc, "hdfs://dsg2.crc.nd.edu/data/enwiki/wikiDeg100edges/", 100).setName("Vertices").cache

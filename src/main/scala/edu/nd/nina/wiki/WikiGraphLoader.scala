@@ -51,7 +51,8 @@ object WikiGraphLoader extends Logging {
       val pc = pages.count//<-executes
       println("Pages: " + pc)
       
-      val catEdges = loadEdges(sc, catpath).setName("Category Edges").cache      
+      val catEdges = loadEdges(sc, catpath).setName("Category Edges").cache
+      
       //val cc = catEdges.count//<-executes
       //println("Category Edges" + cc)
 
@@ -78,7 +79,7 @@ object WikiGraphLoader extends Logging {
       
       val pageGraph = Graph(pages, edges).cache
       
-      val deg10 = pageGraph.inDegrees.filter(v => if(v._2>=100) true else false)
+      val deg10 = pageGraph.inDegrees.filter(v => if(v._2>=500) true else false)
       val deg10graph = pageGraph.vertices.innerJoin(deg10)((vid, vd, other) => vd)
       val filteredPageGraph = Graph(deg10graph, edges).cache
                 
@@ -135,8 +136,8 @@ object WikiGraphLoader extends Logging {
       
       println("------------------------------------")
       
-      wg.vertices.saveAsTextFile("hdfs://dsg2.crc.nd.edu/data/enwiki/wikiDeg100vertices")
-      wg.edges.saveAsTextFile("hdfs://dsg2.crc.nd.edu/data/enwiki/wikiDeg100edges")
+      wg.vertices.saveAsTextFile("hdfs://dsg2.crc.nd.edu/data/enwiki/wikiDeg500vertices")
+      wg.edges.saveAsTextFile("hdfs://dsg2.crc.nd.edu/data/enwiki/wikiDeg500edges")
       
       wg.vertices.foreach(
           f => if(f._1 == 780754 || f._1 == 12) 

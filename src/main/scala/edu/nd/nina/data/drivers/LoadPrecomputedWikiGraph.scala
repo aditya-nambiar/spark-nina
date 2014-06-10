@@ -24,17 +24,17 @@ object LoadPrecomputedWikiGraph extends Logging {
       .set("spark.driver.host", "129.74.153.244")
       .set("spark.driver.port", "5000")
       .set("spark.executor.memory", "14g")
-      .set("spark.storage.memoryFraction", "0.5")
+      .set("spark.storage.memoryFraction", "0.6")
       .setAppName("t")
     .setJars(Array("./target/spark-nina-0.0.1-SNAPSHOT.jar"))
 
     val sc = new SparkContext(sparkconf)
     
 
-    val vertices: RDD[(VertexId, WikiVertex)] = loadPrecomputedVertices(sc, "hdfs://dsg2.crc.nd.edu/data/enwiki/wikiDeg100vertices/", 18).setName("Vertices").cache
-    val edges: RDD[Edge[Double]] = loadPrecomputedEdges(sc, "hdfs://dsg2.crc.nd.edu/data/enwiki/wikiDeg100edges/", 100).setName("Vertices").cache
+    val vertices: RDD[(VertexId, WikiVertex)] = loadPrecomputedVertices(sc, "hdfs://dsg2.crc.nd.edu/data/enwiki/wikiDeg500vertices/", 18).setName("Vertices")
+    val edges: RDD[Edge[Double]] = loadPrecomputedEdges(sc, "hdfs://dsg2.crc.nd.edu/data/enwiki/wikiDeg500edges/", 100).setName("Edges")
 
-    val g: Graph[WikiVertex, Double] = Graph(vertices, edges).cache
+    val g: Graph[WikiVertex, Double] = Graph(vertices, edges)
 
     val vid = 12
 
@@ -47,13 +47,14 @@ object LoadPrecomputedWikiGraph extends Logging {
   def loadPrecomputedVertices(
     sc: SparkContext,
     path: String,
+    src: VertexId,
     minPartitions: Int = 1): RDD[(VertexId, WikiVertex)] = {
 
     val vertices = sc.textFile(path, minPartitions).flatMap { line =>
       if (!line.isEmpty && line(0) != '#') {
         val vertexId = line.substring(1, line.indexOf(",")).toLong
         val lineArray = line.substring(line.indexOf(",") + 1, line.size - 1).split("\\s+")
-        val vdata = vertexParser(vertexId, lineArray)
+        val vdata = vertexParser(src, vertexId, lineArray)       
 
         Iterator((vertexId: VertexId, vdata))
       } else {
@@ -65,11 +66,16 @@ object LoadPrecomputedWikiGraph extends Logging {
 
   }
 
-  def vertexParser(vid: VertexId, arLine: Array[String]): WikiVertex = {
+  def vertexParser(src: VertexId, vid: VertexId, arLine: Array[String]): WikiVertex = {
+    var dist = Double.PositiveInfinity
+    if(src == vid){
+    	dist = 0d;
+    }
+    
     if (arLine.length == 4) {
-      new WikiVertex(arLine(0).toDouble, arLine(1).toInt, arLine(2).toString, toNeighbors(arLine(3)))
+      new WikiVertex(dist, arLine(1).toInt, arLine(2).toString, toNeighbors(arLine(3)))
     } else if (arLine.length == 3) {
-      new WikiVertex(arLine(0).toDouble, arLine(1).toInt, arLine(2).toString, List.empty)
+      new WikiVertex(dist, arLine(1).toInt, arLine(2).toString, List.empty)
     } else {
       logError("Error: WikiVertex tuple not correct format" + arLine.toString())
       null

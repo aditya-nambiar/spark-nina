@@ -28,7 +28,9 @@ object ComputeCategoryDistance extends Logging {
     tp1
   }
 
-  def sssp(g: Graph[WikiVertex, Double], src: VertexId): (Graph[WikiVertex, Double], Double) = {    
+  def sssp(g: Graph[WikiVertex, Double], src: VertexId): (Graph[WikiVertex, Double], Double) = {
+
+    var init = g.mapVertices((id, x) => if (id == src) { new WikiVertex(0, x.ns, x.title, x.neighbours) } else { new WikiVertex(Double.PositiveInfinity, x.ns, x.title, x.neighbours) })
 
     def vertexProgram(src: VertexId, oldDist: WikiVertex, recmsgs: List[Msg]): WikiVertex =
       {
@@ -50,7 +52,7 @@ object ComputeCategoryDistance extends Logging {
         if (oldDist.ns == 0) { //Article
           val min = recmsgs.reduce((x, y) => if (x.dist < y.dist) x else y)
           if (min.dist.isInfinite()) { return oldDist }
-          println("Ya " + oldDist.title  + " " + (min.dist + 1d))
+          println("Ya " + oldDist.title + " " + min.last_cat + " " + (min.dist + 1d))
 
           return new WikiVertex(min.dist + 1, oldDist.ns, oldDist.title, oldDist.neighbours)
 
@@ -59,7 +61,7 @@ object ComputeCategoryDistance extends Logging {
           val recmsgFilter = recmsgs.filter(x => if (x.dist != Double.PositiveInfinity && x.d_ac < 6) true else false)
           val recmsgM = recmsgFilter.map(x => new Msg(x.to, x.dist + 1, x.d_ac + 1))
 
-          return new WikiVertex(Double.PositiveInfinity, oldDist.ns, oldDist.title, oldDist.neighbours, false, false, (src, recmsgM))
+          return new WikiVertex(Double.PositiveInfinity, oldDist.ns, oldDist.title, oldDist.neighbours, false, false, recmsgM)
         }
 
       }
@@ -68,6 +70,7 @@ object ComputeCategoryDistance extends Logging {
       {
 
         if (edge.srcAttr.ns == 0 && edge.dstAttr.ns == 14) { // Article to Category
+
 
 
           if (edge.srcAttr.isDead == true) {
@@ -90,16 +93,17 @@ object ComputeCategoryDistance extends Logging {
           }
 
         } else if (edge.srcAttr.ns == 14 && edge.dstAttr.ns == 14) { // Category to Category
-          if (edge.srcAttr.col_msg._2.isEmpty || edge.dstId == edge.srcAttr.col_msg._1) {
+          if (edge.srcAttr.col_msg.isEmpty) {
             Iterator.empty
           } else {
-            Iterator((edge.dstId, edge.srcAttr.col_msg._2))
+            Iterator((edge.dstId, edge.srcAttr.col_msg))
           }
 
         } else if (edge.srcAttr.ns == 14 && edge.dstAttr.ns == 0) { // Category to Article
           var temp_msg_buf = List.empty[Msg]
-          edge.srcAttr.col_msg._2.foreach(x =>
+          edge.srcAttr.col_msg.foreach(x =>
             if (edge.dstId == x.to) {
+              x.last_cat = edge.srcId
               temp_msg_buf = x :: temp_msg_buf
             })
           if (temp_msg_buf.isEmpty || edge.dstAttr.isDead == true) {
@@ -126,7 +130,7 @@ object ComputeCategoryDistance extends Logging {
     val nmsg = new Msg(1L, Double.PositiveInfinity)
     val initMsg = nmsg :: initialMessage
 
-    val sssp = MyPregel(g, initMsg, Int.MaxValue, EdgeDirection.Out)(
+    val sssp = MyPregel(init, initMsg, 10, EdgeDirection.Either)(
       vertexProgram,
       sendMessage,
       messageCombiner)
@@ -154,6 +158,7 @@ class Msg(a: VertexId, b: Double, c: Double) extends Serializable {
   var to = a
   var dist = b
   var d_ac: Double = c
+  var last_cat: VertexId = 0
   
   override def toString(): String = {
     val ret = to + ":" + dist + ":" + d_ac

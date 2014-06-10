@@ -136,8 +136,8 @@ object WikiGraphLoader extends Logging {
       
       println("------------------------------------")
       
-      wg.vertices.saveAsTextFile("hdfs://dsg2.crc.nd.edu/data/enwiki/wikiDeg500vertices")
-      wg.edges.saveAsTextFile("hdfs://dsg2.crc.nd.edu/data/enwiki/wikiDeg500edges")
+      //wg.vertices.saveAsTextFile("hdfs://dsg2.crc.nd.edu/data/enwiki/wikiDeg500vertices")
+      //wg.edges.saveAsTextFile("hdfs://dsg2.crc.nd.edu/data/enwiki/wikiDeg500edges")
       
       wg.vertices.foreach(
           f => if(f._1 == 780754 || f._1 == 12) 

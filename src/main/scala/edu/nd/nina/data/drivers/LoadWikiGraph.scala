@@ -26,7 +26,7 @@ object LoadWikiGraph {
 
     val sc = new SparkContext(sparkconf)
 
-    val g: Graph[WikiVertex, Double] = WikiGraphLoader.edgeListFiles(sc, "hdfs://dsg2.crc.nd.edu/data/enwiki/categorylinks.txt", "hdfs://dsg2.crc.nd.edu/data/enwiki/pagelinks1m.txt", "hdfs://dsg2.crc.nd.edu/data/enwiki/page1m.txt", false, 100, 100).cache
+    val g: Graph[WikiVertex, Double] = WikiGraphLoader.edgeListFiles(sc, "hdfs://dsg2.crc.nd.edu/data/enwiki/categorylinks1m.txt", "hdfs://dsg2.crc.nd.edu/data/enwiki/pagelinks1m.txt", "hdfs://dsg2.crc.nd.edu/data/enwiki/page1m.txt", false, 100, 100).cache
 
     val vid = 12
 

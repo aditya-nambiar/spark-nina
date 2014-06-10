@@ -50,7 +50,7 @@ object ComputeCategoryDistance extends Logging {
         if (oldDist.ns == 0) { //Article
           val min = recmsgs.reduce((x, y) => if (x.dist < y.dist) x else y)
           if (min.dist.isInfinite()) { return oldDist }
-          println("Ya " + oldDist.title + " " + min.dist)
+          println("Ya " + oldDist.title + " " + min.last_cat + " " + (min.dist + 1d))
 
           return new WikiVertex(min.dist + 1, oldDist.ns, oldDist.title, oldDist.neighbours)
 
@@ -103,6 +103,7 @@ object ComputeCategoryDistance extends Logging {
           var temp_msg_buf = List.empty[Msg]
           edge.srcAttr.col_msg.foreach(x =>
             if (edge.dstId == x.to) {
+              x.last_cat = edge.srcId
               temp_msg_buf = x :: temp_msg_buf
             })
           if (temp_msg_buf.isEmpty || edge.dstAttr.isDead == true) {
@@ -157,6 +158,7 @@ class Msg(a: VertexId, b: Double, c: Double) extends Serializable {
   var to = a
   var dist = b
   var d_ac: Double = c
+  var last_cat: VertexId = 0
   
   override def toString(): String = {
     val ret = to + ":" + dist + ":" + d_ac

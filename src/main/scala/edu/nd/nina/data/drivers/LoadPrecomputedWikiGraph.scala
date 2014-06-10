@@ -16,14 +16,14 @@ object LoadPrecomputedWikiGraph extends Logging {
 
   def main(args: Array[String]): Unit = {
     val sparkconf = new SparkConf()
-      sparkconf.set("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
-      sparkconf.set("spark.kryo.registrator", "org.apache.spark.graphx.GraphKryoRegistrator")
+      //sparkconf.set("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
+      //sparkconf.set("spark.kryo.registrator", "org.apache.spark.graphx.GraphKryoRegistrator")
       //.setMaster("local[4]")
       .setMaster("spark://dsg1.virtual.crc.nd.edu:7077")
       .set("spark.driver.host", "129.74.153.244")
       .set("spark.driver.port", "5000")
-      .set("spark.executor.memory", "12g")
-      .set("spark.storage.memoryFraction", "0.6")
+      .set("spark.executor.memory", "14g")
+      .set("spark.storage.memoryFraction", "0.5")
       .setAppName("t")
     .setJars(Array("./target/spark-nina-0.0.1-SNAPSHOT.jar"))
 
@@ -39,6 +39,8 @@ object LoadPrecomputedWikiGraph extends Logging {
     ComputeCategoryDistance.compute(g, vid)
 
   }
+  
+
 
   def loadPrecomputedVertices(
     sc: SparkContext,

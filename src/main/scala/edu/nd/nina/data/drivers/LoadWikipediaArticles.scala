@@ -1,26 +1,17 @@
 package edu.nd.nina.data.drivers
 
+import org.apache.log4j.PropertyConfigurator
+import org.apache.spark.Logging
 import org.apache.spark.SparkConf
 import org.apache.spark.SparkContext
-import org.apache.spark.Logging
+import edu.nd.nina.wiki.LoadWikipedia
+import edu.nd.nina.wiki.WikiArticle
+import edu.nd.nina.wiki.ComputeCategoryDistanceSmartly
 import org.apache.spark.graphx.Graph
-import org.apache.spark.rdd.RDD
-import org.apache.spark.graphx._
-import org.apache.hadoop.conf.Configuration
-import org.apache.hadoop.io.LongWritable
-import org.apache.hadoop.io.Text
-import org.apache.spark.storage.StorageLevel
-import org.apache.log4j.Logger
-import org.apache.log4j.PropertyConfigurator
-import edu.nd.nina.test.ApproxDiameter
-import org.apache.spark.graphx.util.GraphGenerators
-import org.apache.spark.graphx.util.GraphGenerators
-import scala.util.Random
-import scala.collection.mutable.ArrayBuffer
 import edu.nd.nina.wiki.WikiVertex
-import edu.nd.nina.wiki._
-import edu.nd.nina.wiki.GenerateWikiGraph
-import edu.nd.nina.wiki.ComputeCategoryDistance
+import org.apache.spark.graphx._
+import edu.nd.nina.wiki.random_walk
+import edu.nd.nina.wiki.bfs_articles
 
 object LoadWikipediaArticles extends Logging {
 
@@ -38,7 +29,7 @@ object LoadWikipediaArticles extends Logging {
       //.setMaster("spark://dsg1.virtual.crc.nd.edu:7077")
       .setMaster("local[2]")
       .setAppName("t")
-      //.setJars(Array("./target/spark-nina-0.0.1-SNAPSHOT.jar"))
+    //.setJars(Array("./target/spark-nina-0.0.1-SNAPSHOT.jar"))
 
     val sc = new SparkContext(sparkconf)
 
@@ -46,22 +37,54 @@ object LoadWikipediaArticles extends Logging {
     val ty = LoadWikipedia.loadWikipedia(sc, "./data/enwiki_sample.xml", 4)
     val vid = WikiArticle.titleHash("A")
 
-  //  val rt = ty.vertices.collect
- //   val rt2 = ty.edges.collect
-   // println("Vertices name followed by namespace")
 
-    //println("Edges Sources and destitnation ids")
 
-   // println(rt2.length)
+   random_walk.compute(ty,vid) //----------Random Walk
+   bfs_articles.compute(ty,vid)// ----------------BFS
+ 
+/*    val catToArtEdges = ty.triplets.flatMap[Edge[Double]](x =>
+      if (x.srcAttr != null && x.dstAttr != null && x.dstAttr.ns == 14) {
+        Iterator(Edge(x.dstId, x.srcId, 1))
+      } else {
+        Iterator.empty
+      })
 
-    //val rvid = 18L
-   // val temp = ty.mapTriplets(x => if (x.srcAttr.ns == 0 && x.dstAttr.ns == 0) -1.0 else 1.0)
+    val edgeunion = ty.edges.union(catToArtEdges).setName("Unioned Edges RDD").cache
+    //     val eu = edgeunion.count//<-executes
+    //     println("Unioned Edges1: " + eu) 
 
-    //ComputeCategoryDistance.compute(temp, vid)
-    random_walk.compute(ty,vid)
+    val wikigraph: Graph[WikiVertex, Double] = Graph(ty.vertices, edgeunion)
+
+    val rt = ty.vertices.count
+    val rt2 = ty.edges.count
+
+
+    val nbrs = storeIncomingNbrsInVertex(wikigraph)
+    
+    val rvid = 18L
+
+    val bcstNbrMap = sc.broadcast(nbrs)
+
+    ComputeCategoryDistanceSmartly.compute(wikigraph, vid, bcstNbrMap)
+*/
+
     sc.stop
 
   }
 
+  def storeIncomingNbrsInVertex(wikigraph: Graph[WikiVertex, Double]): Map[VertexId, Set[VertexId]] = {
+
+    val nbrs = wikigraph.mapReduceTriplets[Set[VertexId]](
+      mapFunc = et =>
+        if (et.srcAttr.ns == 0 && et.dstAttr.ns == 0) {
+          Iterator((et.dstId, Set(et.srcId)))
+        } else {
+          Iterator.empty
+        },
+      reduceFunc = _ ++ _)
+
+    nbrs.toArray.toMap
+
+  }
 }
 

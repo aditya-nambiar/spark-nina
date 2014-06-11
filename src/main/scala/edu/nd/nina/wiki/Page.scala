@@ -14,8 +14,10 @@ class Page(_namespace: Int, _title: String, _counter: Long, _is_redirect: Int, _
   val len: Int = _len
   
   def toWikiVertex():WikiVertex ={
-    new WikiVertex(0, namespace, title, List.empty, false, false, List.empty,0);
+    new WikiVertex(0, namespace, title,  false, false, List.empty,List.empty,0);
   }
+
+
 
 
 }

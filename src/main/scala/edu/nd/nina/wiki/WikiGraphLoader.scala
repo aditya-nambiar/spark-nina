@@ -1,4 +1,3 @@
-
 package edu.nd.nina.wiki
 
 import org.apache.spark.{ Logging, SparkContext }
@@ -54,6 +53,7 @@ object WikiGraphLoader extends Logging {
       println("Pages: " + pc)
       
       val catEdges = loadEdges(sc, catpath).setName("Category Edges").cache
+      
       //val cc = catEdges.count//<-executes
       //println("Category Edges" + cc)
 
@@ -61,7 +61,7 @@ object WikiGraphLoader extends Logging {
 
 
       val catToArtEdges = catPageGraph.triplets.flatMap[Edge[Double]](x => 
-         if (x.srcAttr != null && x.dstAttr != null && x.srcAttr.namespace == 0 && x.dstAttr.namespace == 14){
+         if (x.srcAttr != null && x.dstAttr != null && x.dstAttr.namespace == 14){
         	 Iterator(Edge(x.dstId, x.srcId, 1))
          }else{
         	 Iterator.empty
@@ -79,7 +79,8 @@ object WikiGraphLoader extends Logging {
      // println("Artical Edges: " + ec)
       
       val pageGraph = Graph(pages, edges).cache
-      val deg10 = pageGraph.inDegrees.filter(v => if(v._2>=1000) true else false)
+      
+      val deg10 = pageGraph.inDegrees.filter(v => if(v._2>=500) true else false)
       val deg10graph = pageGraph.vertices.innerJoin(deg10)((vid, vd, other) => vd)
       val filteredPageGraph = Graph(deg10graph, edges).cache
                 
@@ -110,8 +111,11 @@ object WikiGraphLoader extends Logging {
       edgeunion.unpersist(false)
       pages.unpersist(false)
         
-        
-      val cleanwikigraph = wikigraph.subgraph(x => x.srcAttr != null && x.dstAttr != null, (vid, vd) => vd != null)
+      
+      val junk  = loadjunkcategories(sc)   
+    
+      val cleanwikigraph = wikigraph.joinVertices(junk)((vid, vd, u) => u)//.filter(f => if(f. == -1) false else true )
+      		.subgraph(x => x.srcAttr != null && x.dstAttr != null, (vid, vd) => vd != null && vd.namespace != -1)
       
       cleanwikigraph.vertices.setName("Clean WikiGraph Vertices").cache
       cleanwikigraph.edges.setName("Clean WikiGraph Edges").cache
@@ -133,13 +137,8 @@ object WikiGraphLoader extends Logging {
       
       println("------------------------------------")
       
-      wg.vertices.saveAsTextFile("hdfs://dsg2.crc.nd.edu/data/enwiki/wikiDeg100vertices")
-      wg.edges.saveAsTextFile("hdfs://dsg2.crc.nd.edu/data/enwiki/wikiDeg100edges")
-      
-      wg.vertices.foreach(
-          f => if(f._1 == 780754 || f._1 == 12) 
-            println(f._2.neighbours.length) 
-          )
+      //wg.vertices.saveAsTextFile("hdfs://dsg2.crc.nd.edu/data/enwiki/wikiDeg500vertices")
+      //wg.edges.saveAsTextFile("hdfs://dsg2.crc.nd.edu/data/enwiki/wikiDeg500edges")
       
       wg
     }
@@ -148,27 +147,25 @@ object WikiGraphLoader extends Logging {
 
     val wikifiedWikiGraph = wikigraph.mapVertices((vid, vd) => vd.toWikiVertex)
 
-    val nbrs = wikifiedWikiGraph.mapReduceTriplets[List[VertexId]](
-      mapFunc = et =>
-        if (et.srcAttr.ns == 0) {
-          Iterator((et.srcId, List(et.dstId)))
-        } else {
-          Iterator.empty
-        },
-      reduceFunc = _ ++ _)
-
-    val neighborfiedVertices = wikifiedWikiGraph.vertices.leftZipJoin(nbrs) { (vid, vdata, nbrsOpt) =>
-      if(vid == 12){
-        println(12)
-      }
-      vdata.neighbours = nbrsOpt.getOrElse(List.empty[VertexId])
-      vdata
-    }
-
-    Graph(neighborfiedVertices, wikigraph.edges);
-
+    wikifiedWikiGraph
   }
 
+  def loadjunkcategories(sc: SparkContext): RDD[(VertexId, Page)] = {
+
+    val cats = sc.textFile("hdfs://dsg2.crc.nd.edu/data/enwiki/junkcategories").flatMap { line =>
+      if (!line.isEmpty && line(0) != '#') {
+
+        Iterator((line.toLong, new Page(-1, "", 0l, 0, 0, 0.0, 0l, 0, 0)))
+      } else {
+        println("returning empty")
+        Iterator.empty
+      }
+    }
+
+    cats
+
+  }
+  
   def loadPage[VD: ClassManifest](
     sc: SparkContext,
     path: String,
@@ -224,3 +221,4 @@ object WikiGraphLoader extends Logging {
     }
   }
 }
+

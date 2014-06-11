@@ -53,7 +53,7 @@ class WikiArticle(wtext: String) {
 
   def toWikivertex(): WikiVertex = {
 
-    val a = new WikiVertex(0, namespace.toInt, title, List.empty[VertexId])
+    val a = new WikiVertex(0, namespace.toInt, title)
 
     a
   }

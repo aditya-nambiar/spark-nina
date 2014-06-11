@@ -12,7 +12,7 @@ import scala.collection.mutable.ArrayBuffer
 import org.apache.spark.rdd.RDD
 import org.apache.spark.graphx.EdgeRDD
 
-object WikiGraphLoader extends Logging {
+object WikiGraphLoaderSmartly extends Logging {
 
   /**
    * Loads a graph from an edge list formatted file where each line contains two integers: a source
@@ -128,7 +128,7 @@ object WikiGraphLoader extends Logging {
       
 
 
-      val wg = storeOutgoingNbrsInVertex(cleanwikigraph)
+      val wg = storeIncomingNbrsInVertex(cleanwikigraph)
       wg.vertices.count
       
       cleanwikigraph.unpersistVertices(false)
@@ -136,13 +136,14 @@ object WikiGraphLoader extends Logging {
       
       println("------------------------------------")
       
-      //wg.vertices.saveAsTextFile("hdfs://dsg2.crc.nd.edu/data/enwiki/wikiDeg500vertices")
-      //wg.edges.saveAsTextFile("hdfs://dsg2.crc.nd.edu/data/enwiki/wikiDeg500edges")
+      wg.vertices.saveAsTextFile("hdfs://dsg2.crc.nd.edu/data/enwiki/wikiDeg500verticesSmartly")
+      wg.edges.saveAsTextFile("hdfs://dsg2.crc.nd.edu/data/enwiki/wikiDeg500edgesSmartly")
       
+
       wg
     }
 
-  def storeOutgoingNbrsInVertex(wikigraph: Graph[Page, Double]): Graph[WikiVertex, Double] = {
+  def storeIncomingNbrsInVertex(wikigraph: Graph[Page, Double]): Graph[WikiVertex, Double] = {
 
     val wikifiedWikiGraph = wikigraph.mapVertices((vid, vd) => vd.toWikiVertex)
 

@@ -46,19 +46,19 @@ object LoadWikipediaArticles extends Logging {
     val ty = LoadWikipedia.loadWikipedia(sc, "./data/enwiki_sample.xml", 4)
     val vid = WikiArticle.titleHash("A")
 
-    val rt = ty.vertices.collect
-    val rt2 = ty.edges.collect
-    println("Vertices name followed by namespace")
+  //  val rt = ty.vertices.collect
+ //   val rt2 = ty.edges.collect
+   // println("Vertices name followed by namespace")
 
-    println("Edges Sources and destitnation ids")
+    //println("Edges Sources and destitnation ids")
 
-    println(rt2.length)
+   // println(rt2.length)
 
-    val rvid = 18L
-    val temp = ty.mapTriplets(x => if (x.srcAttr.ns == 0 && x.dstAttr.ns == 0) -1.0 else 1.0)
+    //val rvid = 18L
+   // val temp = ty.mapTriplets(x => if (x.srcAttr.ns == 0 && x.dstAttr.ns == 0) -1.0 else 1.0)
 
     //ComputeCategoryDistance.compute(temp, vid)
-
+    random_walk.compute(ty,vid)
     sc.stop
 
   }

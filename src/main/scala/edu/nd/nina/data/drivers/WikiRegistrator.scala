@@ -11,7 +11,9 @@ class WikiRegistrator extends GraphKryoRegistrator {
   override def registerClasses(kryo: Kryo) {
     super.registerClasses(kryo)
     kryo.register(classOf[edu.nd.nina.wiki.WikiVertex])
+
     kryo.register(classOf[edu.nd.nina.wiki.Page])
+
     kryo.register(classOf[edu.nd.nina.wiki.Msg])
   }
 }

@@ -128,7 +128,9 @@ object MyPregel extends Logging {
     // compute the messages
     var messages = g.mapReduceTriplets(sendMsg, mergeMsg)
     var activeMessages = messages.count()
+
     println("ActiveMessages " + activeMessages)
+
     // Loop
     var prevG: Graph[VD, ED] = null
     var i = 0
@@ -144,7 +146,9 @@ object MyPregel extends Logging {
       g.cache()
 
 
+
       
+
       val oldMessages = messages
       // Send new messages. Vertices that didn't get any messages don't appear in newVerts, so don't
       // get to send messages. We must cache messages so it can be materialized on the next line,
@@ -155,7 +159,9 @@ object MyPregel extends Logging {
       // hides oldMessages (depended on by newVerts), newVerts (depended on by messages), and the
       // vertices of prevG (depended on by newVerts, oldMessages, and the vertices of g).
       activeMessages = messages.count()
+
       println("ActiveMessages at " + i + ": " + activeMessages)
+
 
       logInfo("Pregel finished iteration " + i)
 

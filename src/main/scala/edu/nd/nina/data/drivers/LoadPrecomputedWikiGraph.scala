@@ -14,6 +14,8 @@ import edu.nd.nina.wiki.ComputeCategoryDistance
 import org.apache.spark.rdd.RDD
 import org.apache.spark.AccumulatorParam
 import edu.nd.nina.wiki.ComputeCategoryDistanceSmartly
+import edu.nd.nina.wiki.random_walk
+import edu.nd.nina.wiki.random_walk
 
 object LoadPrecomputedWikiGraph extends Logging {
 
@@ -23,11 +25,11 @@ object LoadPrecomputedWikiGraph extends Logging {
       //sparkconf.set("spark.kryo.registrator", "org.apache.spark.graphx.GraphKryoRegistrator")
       //.setMaster("local[4]")
       .setMaster("spark://dsg1.virtual.crc.nd.edu:7077")
-      .set("spark.driver.host", "129.74.153.244")
+      .set("spark.driver.host", "129.74.143.99")
       .set("spark.driver.port", "5000")
-      .set("spark.executor.memory", "14g")
+      .set("spark.executor.memory", "8g")
       .set("spark.driver.memory", "4g")
-      .set("spark.storage.memoryFraction", "0.6")
+      .set("spark.storage.memoryFraction", "0.5")
       .setAppName("t")
     .setJars(Array("./target/spark-nina-0.0.1-SNAPSHOT.jar"))
 
@@ -35,10 +37,10 @@ object LoadPrecomputedWikiGraph extends Logging {
     
     
     
-    val nbrs = loadNeighbors(sc, "hdfs://dsg2.crc.nd.edu/data/enwiki/wikiDeg500verticesSmartly/", 18)
+   // val nbrs = loadNeighbors(sc, "hdfs://dsg2.crc.nd.edu/data/enwiki/wikiDeg500verticesSmartly/", 18)
     
     
-    val bcstNbrMap = sc.broadcast(nbrs)
+   // val bcstNbrMap = sc.broadcast(nbrs)
     
 
     val vertices: RDD[(VertexId, WikiVertex)] = loadPrecomputedVertices(sc, "hdfs://dsg2.crc.nd.edu/data/enwiki/wikiDeg500verticesSmartly/", 50).setName("Vertices")
@@ -47,8 +49,8 @@ object LoadPrecomputedWikiGraph extends Logging {
     val g: Graph[WikiVertex, Double] = Graph(vertices, edges)
     
     val vid = 12
-
-    ComputeCategoryDistanceSmartly.compute(g, vid, bcstNbrMap)
+    println("sdf")
+    random_walk.compute(g, vid)
 
   }
   

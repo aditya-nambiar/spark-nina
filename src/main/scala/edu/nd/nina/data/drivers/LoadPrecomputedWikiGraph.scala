@@ -27,11 +27,11 @@ object LoadPrecomputedWikiGraph extends Logging {
       //.setMaster("local[4]")
       .setMaster("spark://dsg1.virtual.crc.nd.edu:7077")
 
-      .set("spark.driver.host", "129.74.153.244")
+      .set("spark.driver.host", "129.74.161.208")
       .set("spark.driver.port", "5000")
-      .set("spark.executor.memory", "14g")
-      .set("spark.driver.memory", "4g")
-      .set("spark.storage.memoryFraction", "0.6")
+      .set("spark.executor.memory", "15g")
+      .set("spark.driver.memory", "2g")
+      .set("spark.storage.memoryFraction", "0.5")
       .setAppName("t")
       .setJars(Array("./target/spark-nina-0.0.1-SNAPSHOT.jar"))
 
@@ -44,14 +44,26 @@ object LoadPrecomputedWikiGraph extends Logging {
 
     val vid = 12
 
-    val starts = Array((4764461L, "World_War_One"),
+    val starts = Array((4764461L, "World_War_I"),
       (534366L, "Barack_Obama"),
       (13078660L, "Dragon_ball"),
       (8980330L, "WALL-E"),
       (1318302L, "Road_to_perdition"),
       (740353L, "Britney_spears"),
       (8711726L, "United_kingdom"),
-      (951976L, "United_states"))
+      (951976L, "United_states"),
+      (11121L, "Fox_News_Channel"),
+      (827390L, "Paul_mccartney "),
+      (1246010L, "North_korea"),
+      (2289648L, "Windows_Vista"),
+      (9729299L, "Jonas_Brothers"),
+      (1018340L, "Columbia_university"),
+      (4854L, "Bermuda_Triangle"),
+      (2466773L, "The_Godfather"),
+      (5119376L, "John_F._Kennedy"),
+      (12731L, "George_Harrison"),
+      (5949664L, "FaceBook"),
+      (20796L, "Malcolm_X"))
 
     random_walk.compute(g, starts)
 

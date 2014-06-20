@@ -27,7 +27,7 @@ object LoadPrecomputedWikiGraph extends Logging {
       //.setMaster("local[4]")
       .setMaster("spark://dsg1.virtual.crc.nd.edu:7077")
 
-      .set("spark.driver.host", "129.74.161.208")
+      .set("spark.driver.host", "129.74.143.99")
       .set("spark.driver.port", "5000")
       .set("spark.executor.memory", "15g")
       .set("spark.driver.memory", "2g")

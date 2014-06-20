@@ -64,7 +64,7 @@ object ComputeCategoryDistanceSmartly extends Logging {
           val recmsgFilter = recmsgs.filter(x => if (x._2 != Double.PositiveInfinity ) true else false)
           val recmsgM = recmsgFilter.map(x => (x._1, x._2+1, x._3+1))
 
-          return new WikiVertex(Double.PositiveInfinity, oldDist.ns, oldDist.title, false, false, List.empty, recmsgM,0)
+          return new WikiVertex(Double.PositiveInfinity, oldDist.ns, oldDist.title, false, false, List.empty, recmsgM,Array[Double](25),0)
         }
 
       }

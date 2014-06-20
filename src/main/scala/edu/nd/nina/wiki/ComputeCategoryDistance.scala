@@ -63,7 +63,7 @@ object ComputeCategoryDistance extends Logging {
           val recmsgM = recmsgFilter.map(x => (x.to, x.dist + 1,( x.d_ac + 1).toInt))
 
 
-          return new WikiVertex(Double.PositiveInfinity, oldDist.ns, oldDist.title, false, false,List.empty, recmsgM,0)
+          return new WikiVertex(Double.PositiveInfinity, oldDist.ns, oldDist.title, false, false,List.empty, recmsgM,Array[Double](25),0)
 
         }
 

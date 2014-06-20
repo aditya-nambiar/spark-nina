@@ -16,6 +16,7 @@ import org.apache.spark.AccumulatorParam
 import edu.nd.nina.wiki.ComputeCategoryDistanceSmartly
 import edu.nd.nina.wiki.random_walk
 import edu.nd.nina.wiki.random_walk
+import edu.nd.nina.wiki.bfs_articles
 
 object LoadPrecomputedWikiGraph extends Logging {
 
@@ -26,12 +27,12 @@ object LoadPrecomputedWikiGraph extends Logging {
       //.setMaster("local[4]")
       .setMaster("spark://dsg1.virtual.crc.nd.edu:7077")
       .set("spark.driver.host", "129.74.143.99")
-      .set("spark.driver.port", "5000")
-      .set("spark.executor.memory", "8g")
+      .set("spark.driver.port", "6000")
+      .set("spark.executor.memory", "12g")
       .set("spark.driver.memory", "4g")
       .set("spark.storage.memoryFraction", "0.5")
       .setAppName("t")
-    .setJars(Array("./target/spark-nina-0.0.1-SNAPSHOT.jar"))
+    .setJars(Array("./target/spark-nina-SNAPSHOT.jar"))
 
     val sc = new SparkContext(sparkconf)
     
@@ -43,15 +44,31 @@ object LoadPrecomputedWikiGraph extends Logging {
    // val bcstNbrMap = sc.broadcast(nbrs)
     
 
-    val vertices: RDD[(VertexId, WikiVertex)] = loadPrecomputedVertices(sc, "hdfs://dsg2.crc.nd.edu/data/enwiki/wikiDeg500verticesSmartly/", 50).setName("Vertices")
-    val edges: RDD[Edge[Double]] = loadPrecomputedEdges(sc, "hdfs://dsg2.crc.nd.edu/data/enwiki/wikiDeg500edgesSmartly/", 100).setName("Edges")
+    val vertices: RDD[(VertexId, WikiVertex)] = loadPrecomputedVertices(sc, "hdfs://dsg2.crc.nd.edu/data/enwiki/wikiDeg100vertices/", 50).setName("Vertices")
+    val edges: RDD[Edge[Double]] = loadPrecomputedEdges(sc, "hdfs://dsg2.crc.nd.edu/data/enwiki/wikiDeg100edges/", 100).setName("Edges")
 
     val g: Graph[WikiVertex, Double] = Graph(vertices, edges)
     
     val vid = 12
-    println("sdf")
-    random_walk.compute(g, vid)
+    val starts = Array((4764461L,"World_War_One"),                    
+   (534366L, "Barack_Obama"),                  
+ (13078660L,"Dragon_ball"),                    
+  (8980330L , "WALL-E" ),                       
+  (1318302L , "Road_to_perdition"),              
+  ( 740353L , "Britney_spears"),                 
+  (8711726L , "United_kingdom"),                 
+   (951976L , "United_states"))                  
+           
+                   
+  
+   
+   
+   
+    random_walk.compute(g, starts)
+   
+   
 
+    
   }
   
   def loadNeighbors(

@@ -39,8 +39,8 @@ object LoadWikipediaArticles extends Logging {
 
 
 
-   random_walk.compute(ty,vid) //----------Random Walk
-   bfs_articles.compute(ty,vid)// ----------------BFS
+  // random_walk.compute(ty,vid) //----------Random Walk
+ //  bfs_articles.compute(ty,vid)// ----------------BFS
  
 /*    val catToArtEdges = ty.triplets.flatMap[Edge[Double]](x =>
       if (x.srcAttr != null && x.dstAttr != null && x.dstAttr.ns == 14) {

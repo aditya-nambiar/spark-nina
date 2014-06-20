@@ -127,7 +127,7 @@ object MyPregel extends Logging {
     var g = graph.mapVertices((vid, vdata) => vprog(vid, vdata, initialMsg)).cache()
     // compute the messages
     var messages = g.mapReduceTriplets(sendMsg, mergeMsg)
-    var activeMessages = messages.count()
+    var activeMessages  = messages.count()
 
     println("ActiveMessages " + activeMessages)
 
@@ -163,7 +163,7 @@ object MyPregel extends Logging {
       println("ActiveMessages at " + i + ": " + activeMessages)
 
 
-      logInfo("Pregel finished iteration " + i)
+     println("Pregel finished iteration " + i + "-----------------------------------------------------")
 
       // Unpersist the RDDs hidden by newly-materialized RDDs
       oldMessages.unpersist(blocking=false)

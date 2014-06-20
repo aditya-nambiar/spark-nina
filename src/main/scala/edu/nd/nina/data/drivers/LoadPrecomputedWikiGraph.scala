@@ -1,3 +1,4 @@
+
 package edu.nd.nina.data.drivers
 
 import org.apache.spark.SparkConf
@@ -13,6 +14,9 @@ import edu.nd.nina.wiki.ComputeCategoryDistance
 import org.apache.spark.rdd.RDD
 import org.apache.spark.AccumulatorParam
 import edu.nd.nina.wiki.ComputeCategoryDistanceSmartly
+import edu.nd.nina.wiki.random_walk
+import edu.nd.nina.wiki.random_walk
+import edu.nd.nina.wiki.bfs_articles
 
 object LoadPrecomputedWikiGraph extends Logging {
 
@@ -22,35 +26,37 @@ object LoadPrecomputedWikiGraph extends Logging {
       //sparkconf.set("spark.kryo.registrator", "org.apache.spark.graphx.GraphKryoRegistrator")
       //.setMaster("local[4]")
       .setMaster("spark://dsg1.virtual.crc.nd.edu:7077")
+
       .set("spark.driver.host", "129.74.153.244")
       .set("spark.driver.port", "5000")
       .set("spark.executor.memory", "14g")
       .set("spark.driver.memory", "4g")
       .set("spark.storage.memoryFraction", "0.6")
       .setAppName("t")
-    .setJars(Array("./target/spark-nina-0.0.1-SNAPSHOT.jar"))
+      .setJars(Array("./target/spark-nina-0.0.1-SNAPSHOT.jar"))
 
     val sc = new SparkContext(sparkconf)
-    
-    
-    
-    val nbrs = loadNeighbors(sc, "hdfs://dsg2.crc.nd.edu/data/enwiki/wikiDeg500verticesSmartly/", 18)
-    
-    
-    val bcstNbrMap = sc.broadcast(nbrs)
-    
 
-    val vertices: RDD[(VertexId, WikiVertex)] = loadPrecomputedVertices(sc, "hdfs://dsg2.crc.nd.edu/data/enwiki/wikiDeg500verticesSmartly/", 50).setName("Vertices")
-    val edges: RDD[Edge[Double]] = loadPrecomputedEdges(sc, "hdfs://dsg2.crc.nd.edu/data/enwiki/wikiDeg500edgesSmartly/", 100).setName("Edges")
+    val vertices: RDD[(VertexId, WikiVertex)] = loadPrecomputedVertices(sc, "hdfs://dsg2.crc.nd.edu/data/enwiki/wikiDeg100vertices/", 50).setName("Vertices")
+    val edges: RDD[Edge[Double]] = loadPrecomputedEdges(sc, "hdfs://dsg2.crc.nd.edu/data/enwiki/wikiDeg100edges/", 100).setName("Edges")
 
     val g: Graph[WikiVertex, Double] = Graph(vertices, edges)
-    
+
     val vid = 12
 
-    ComputeCategoryDistanceSmartly.compute(g, vid, bcstNbrMap)
+    val starts = Array((4764461L, "World_War_One"),
+      (534366L, "Barack_Obama"),
+      (13078660L, "Dragon_ball"),
+      (8980330L, "WALL-E"),
+      (1318302L, "Road_to_perdition"),
+      (740353L, "Britney_spears"),
+      (8711726L, "United_kingdom"),
+      (951976L, "United_states"))
+
+    random_walk.compute(g, starts)
 
   }
-  
+
   def loadNeighbors(
     sc: SparkContext,
     path: String,
@@ -60,8 +66,8 @@ object LoadPrecomputedWikiGraph extends Logging {
       if (!line.isEmpty && line(0) != '#') {
         val vertexId = line.substring(1, line.indexOf(",")).toLong
         val lineArray = line.substring(line.indexOf(",") + 1, line.size - 1).split("\\s+")
-        
-        val vdata = neighborParser(vertexId, lineArray)       
+
+        val vdata = neighborParser(vertexId, lineArray)
 
         Iterator((vertexId: VertexId, vdata))
       } else {
@@ -94,7 +100,7 @@ object LoadPrecomputedWikiGraph extends Logging {
       if (!line.isEmpty && line(0) != '#') {
         val vertexId = line.substring(1, line.indexOf(",")).toLong
         val lineArray = line.substring(line.indexOf(",") + 1, line.size - 1).split("\\s+")
-        val vdata = vertexParser(vertexId, lineArray)       
+        val vdata = vertexParser(vertexId, lineArray)
 
         Iterator((vertexId: VertexId, vdata))
       } else {
@@ -105,8 +111,6 @@ object LoadPrecomputedWikiGraph extends Logging {
     vertices
 
   }
-  
-
 
   def vertexParser(vid: VertexId, arLine: Array[String]): WikiVertex = {
     if (arLine.length == 4) {
@@ -130,7 +134,7 @@ object LoadPrecomputedWikiGraph extends Logging {
         list = list + x.toLong
       }
       list
-      
+
     }
   }
 

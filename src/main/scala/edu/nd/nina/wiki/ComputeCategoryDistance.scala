@@ -10,6 +10,7 @@ import scala.collection.mutable.Set
 import edu.nd.nina.test.ApproxDiameter
 import edu.nd.nina.test.MyPregel
 import org.apache.spark.Accumulator
+import edu.nd.nina.test.MyPregel
 object ComputeCategoryDistance extends Logging {
   //  var fin_art1: collection.mutable.Set[VertexId] = Set.empty
   //  var fin_art2: collection.mutable.Set[VertexId] = Set.empty
@@ -57,11 +58,13 @@ object ComputeCategoryDistance extends Logging {
           return new WikiVertex(min.dist + 1, oldDist.ns, oldDist.title)
 
         } else { //Category
-
+//Work todo
           val recmsgFilter = recmsgs.filter(x => if (x.dist != Double.PositiveInfinity && x.d_ac < 6) true else false)
-          val recmsgM = recmsgFilter.map(x => new Msg(x.to, x.dist + 1, x.d_ac + 1))
+          val recmsgM = recmsgFilter.map(x => (x.to, x.dist + 1,( x.d_ac + 1).toInt))
 
-          return new WikiVertex(Double.PositiveInfinity, oldDist.ns, oldDist.title, false, false, recmsgM, List.empty)
+
+          return new WikiVertex(Double.PositiveInfinity, oldDist.ns, oldDist.title, false, false,List.empty, recmsgM,Array[Double](25),0)
+
         }
 
       }

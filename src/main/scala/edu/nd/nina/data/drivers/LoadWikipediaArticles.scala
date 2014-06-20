@@ -10,6 +10,8 @@ import edu.nd.nina.wiki.ComputeCategoryDistanceSmartly
 import org.apache.spark.graphx.Graph
 import edu.nd.nina.wiki.WikiVertex
 import org.apache.spark.graphx._
+import edu.nd.nina.wiki.random_walk
+import edu.nd.nina.wiki.bfs_articles
 
 object LoadWikipediaArticles extends Logging {
 
@@ -35,7 +37,12 @@ object LoadWikipediaArticles extends Logging {
     val ty = LoadWikipedia.loadWikipedia(sc, "./data/enwiki_sample.xml", 4)
     val vid = WikiArticle.titleHash("A")
 
-    val catToArtEdges = ty.triplets.flatMap[Edge[Double]](x =>
+
+
+  // random_walk.compute(ty,vid) //----------Random Walk
+ //  bfs_articles.compute(ty,vid)// ----------------BFS
+ 
+/*    val catToArtEdges = ty.triplets.flatMap[Edge[Double]](x =>
       if (x.srcAttr != null && x.dstAttr != null && x.dstAttr.ns == 14) {
         Iterator(Edge(x.dstId, x.srcId, 1))
       } else {
@@ -59,6 +66,7 @@ object LoadWikipediaArticles extends Logging {
     val bcstNbrMap = sc.broadcast(nbrs)
 
     ComputeCategoryDistanceSmartly.compute(wikigraph, vid, bcstNbrMap)
+*/
 
     sc.stop
 

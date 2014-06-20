@@ -52,20 +52,27 @@ object WikiGraphLoader extends Logging {
       println("Pages: " + pc)
       
       val catEdges = loadEdges(sc, catpath).setName("Category Edges").cache
+
       
       //val cc = catEdges.count//<-executes
       //println("Category Edges" + cc)
+
 
       val catPageGraph: Graph[Page, Double] = Graph(pages, catEdges)
 
 
       val catToArtEdges = catPageGraph.triplets.flatMap[Edge[Double]](x => 
+
+
          if (x.srcAttr != null && x.dstAttr != null && x.dstAttr.namespace == 14){
+
+
         	 Iterator(Edge(x.dstId, x.srcId, 1))
          }else{
         	 Iterator.empty
          }
          )
+
          
       catPageGraph.unpersistVertices(false);
       catPageGraph.edges.unpersist(false);
@@ -96,10 +103,12 @@ object WikiGraphLoader extends Logging {
       edges.unpersist(false)
       catToArtEdges.unpersist(false)
       catEdges.unpersist(false)
+
             
       val wikigraph: Graph[Page, Double] = Graph(pages, edgeunion)
       
       wikigraph.vertices.setName("WikiGraph Vertices").cache
+
       wikigraph.edges.setName("WikiGraph Edges").cache     
       
    //   val wvc = wikigraph.vertices.count//<-executes
@@ -122,6 +131,7 @@ object WikiGraphLoader extends Logging {
       //val cwec = cleanwikigraph.edges.count//<-executes
       //println("WikiGraph Vertices: " + cwvc)
       //println("WikiGraph Edges: " + cwec)
+
       
       wikigraph.unpersistVertices(false)
       wikigraph.edges.unpersist(false)
@@ -134,17 +144,20 @@ object WikiGraphLoader extends Logging {
       cleanwikigraph.unpersistVertices(false)
       cleanwikigraph.edges.unpersist(false)
       
+
       println("------------------------------------")
       
       //wg.vertices.saveAsTextFile("hdfs://dsg2.crc.nd.edu/data/enwiki/wikiDeg500vertices")
       //wg.edges.saveAsTextFile("hdfs://dsg2.crc.nd.edu/data/enwiki/wikiDeg500edges")
       
+
       wg
     }
 
   def storeOutgoingNbrsInVertex(wikigraph: Graph[Page, Double]): Graph[WikiVertex, Double] = {
 
     val wikifiedWikiGraph = wikigraph.mapVertices((vid, vd) => vd.toWikiVertex)
+
 
     wikifiedWikiGraph
   }
@@ -220,3 +233,4 @@ object WikiGraphLoader extends Logging {
     }
   }
 }
+

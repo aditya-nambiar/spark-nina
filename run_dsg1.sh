@@ -1,1 +1,1 @@
-/usr/lib/spark/bin/spark-submit --driver-memory=5G --executor-memory=10G --master spark://dsg1.virtual.crc.nd.edu:7077 --class edu.nd.nina.data.drivers.LoadWikipediaArticles /home/tweninge/spark-nina/target/spark-nina-0.0.1-SNAPSHOT.jar 2000 800 3
+/usr/lib/spark/bin/spark-submit --driver-memory=5G --executor-memory=10G --master=spark://dsg1.virtual.crc.nd.edu:7077 --class=edu.nd.nina.data.drivers.LoadPrecomputedWikiGraph /home/tweninge/spark-nina/target/spark-nina-0.0.1-SNAPSHOT.jar 2000 800 3

@@ -27,11 +27,12 @@ object LoadPrecomputedWikiGraph extends Logging {
       //.setMaster("local[4]")
       .setMaster("spark://dsg1.virtual.crc.nd.edu:7077")
 
-      .set("spark.driver.host", "129.74.161.208")
-      .set("spark.driver.port", "5000")
+      .set("spark.driver.host", "129.74.246.88")
+      .set("spark.driver.port", "5001")
       .set("spark.executor.memory", "15g")
       .set("spark.driver.memory", "2g")
-      .set("spark.storage.memoryFraction", "0.5")
+      .set("spark.storage.memoryFraction", "0.8")
+      .set("spark.locality.wait", "100000000")
       .setAppName("t")
       .setJars(Array("./target/spark-nina-0.0.1-SNAPSHOT.jar"))
 

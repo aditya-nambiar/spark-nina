@@ -202,7 +202,7 @@ object random_walk {
 
     val initialMessage = new Array[Double](20)
 
-    val sssp = MyPregel(gr, initialMessage, 20, EdgeDirection.Out)(
+    val sssp = MyPregel(gr, initialMessage, 12, EdgeDirection.Out)(
       vertexProgram,
       sendMessage,
       messageCombiner)
@@ -212,7 +212,7 @@ object random_walk {
     var summed = 1.0
     val r = sssp.vertices.filter(x => (x._2.arr_dist(0) != 0 || x._2.arr_dist(1) != 0 || x._2.arr_dist(2) != 0 || x._2.arr_dist(3) != 0 || x._2.arr_dist(4) != 0 || x._2.arr_dist(5) != 0 || x._2.arr_dist(6) != 0 || x._2.arr_dist(7) != 0) || x._2.arr_dist(8) != 0 || x._2.arr_dist(9) != 0 || x._2.arr_dist(10) != 0 || x._2.arr_dist(11) != 0|| x._2.arr_dist(12) != 0 || x._2.arr_dist(13) != 0 || x._2.arr_dist(14) != 0 || x._2.arr_dist(15)!=0 ||x._2.arr_dist(16) != 0 || x._2.arr_dist(17) != 0 || x._2.arr_dist(18) != 0 || x._2.arr_dist(19)!=0 )
     println("##*## Non-Zero articles = " + r.count)
-    r.saveAsTextFile("hdfs://dsg2.crc.nd.edu/data/enwiki/random_20_works_20iter")
+    r.saveAsTextFile("hdfs://dsg2.crc.nd.edu/data/enwiki/random_20_works_12iter")
 
     // var summed = sssp.vertices.map((a) => a._2.dist).reduce(math.max(_, _))
 

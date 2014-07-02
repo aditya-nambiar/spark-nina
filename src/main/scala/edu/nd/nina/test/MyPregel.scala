@@ -113,11 +113,12 @@ object MyPregel extends Logging {
 * @return the resulting graph at the end of the computation
 *
 */
+
   def apply[VD: ClassTag, ED: ClassTag, A: ClassTag]
      (graph: Graph[VD, ED],
       initialMsg: A,
       maxIterations: Int = Int.MaxValue,
-      activeDirection: EdgeDirection = EdgeDirection.Either)
+      activeDirection: EdgeDirection = EdgeDirection.Out)
      (vprog: (VertexId, VD, A) => VD,
       sendMsg: EdgeTriplet[VD, ED] => Iterator[(VertexId, A)],
       mergeMsg: (A, A) => A)
@@ -133,7 +134,9 @@ object MyPregel extends Logging {
     // Loop
     var prevG: Graph[VD, ED] = null
     var i = 0
+   
     while (activeMessages > 0 && i < maxIterations) {
+     
       g.vertices.setName("g vertices: " + i)
       g.edges.setName("g edges: " + i)
       // Receive the messages. Vertices that didn't get any messages do not appear in newVerts.
@@ -141,6 +144,7 @@ object MyPregel extends Logging {
       newVerts.setName("newVerts: " + i)
       // Update the graph with the new vertices.
       prevG = g
+    
       g = g.outerJoinVertices(newVerts) { (vid, old, newOpt) => newOpt.getOrElse(old) }
       g.cache()
 

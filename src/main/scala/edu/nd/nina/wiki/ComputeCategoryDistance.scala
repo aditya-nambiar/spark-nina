@@ -10,7 +10,7 @@ import scala.collection.mutable.Set
 import edu.nd.nina.test.ApproxDiameter
 import edu.nd.nina.test.MyPregel
 import org.apache.spark.Accumulator
-import edu.nd.nina.test.MyPregel
+
 object ComputeCategoryDistance extends Logging {
   //  var fin_art1: collection.mutable.Set[VertexId] = Set.empty
   //  var fin_art2: collection.mutable.Set[VertexId] = Set.empty

@@ -154,6 +154,7 @@ object random_walk {
 
     def vertexProgram(src: VertexId, oldDist: WikiVertex, recmsgs: Array[Double]): WikiVertex =
       {
+     
 
         if (oldDist.ns == 0) { //Article
           //  println("Vertex Program" + recmsgs.length+" "+oldDist.arr_dist.length)
